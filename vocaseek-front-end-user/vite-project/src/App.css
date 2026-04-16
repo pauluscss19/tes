@@ -1,0 +1,236 @@
+:root {
+  --primary: #e6ac00;
+  --dark-blue: #243a8f;
+  --text-dark: #222;
+  --text-light: #777;
+  --bg-light: #f5f5f5;
+}
+
+.container {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.navbar {
+  background: #fff;
+  border-bottom: 1px solid #eee;
+  padding: 18px 0;
+}
+
+.nav-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  font-weight: 700;
+  font-size: 20px;
+  color: var(--dark-blue);
+}
+
+.logo-icon {
+  width: 28px;
+  height: 28px;
+  background: var(--primary);
+  margin-right: 8px;
+  border-radius: 4px;
+}
+
+.navbar nav a {
+  margin: 0 15px;
+  color: var(--text-dark);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.navbar nav .active {
+  color: var(--primary);
+}
+
+.profile-pic {
+  width: 35px;
+  height: 35px;
+  background: #ccc;
+  border-radius: 50%;
+}
+
+/* HERO */
+.hero {
+  background: #f7f5f2;
+  padding: 100px 0;
+}
+
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.label {
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 1px;
+}
+
+.hero h1 {
+  font-size: 42px;
+  margin: 20px 0;
+}
+
+.subtitle {
+  color: var(--text-light);
+  margin-bottom: 30px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  border: none;
+  padding: 12px 24px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-link {
+  background: none;
+  border: none;
+  margin-left: 20px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.hero-image .image-box {
+  height: 380px;
+  background: #cfdad4;
+  position: relative;
+}
+
+.floating-card {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  background: #111;
+  color: #fff;
+  padding: 20px;
+}
+
+/* MITRA */
+.mitra {
+  padding: 80px 0;
+}
+
+.mitra-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.mitra-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.mitra-box {
+  background: #f1f1f1;
+  padding: 30px;
+  flex: 1;
+  text-align: center;
+}
+
+/* BIDANG */
+.bidang {
+  padding: 80px 0;
+  background: #fafafa;
+}
+
+.center {
+  text-align: center;
+  margin-bottom: 50px;
+}
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+.card {
+  background: #fff;
+  padding: 25px;
+  text-align: center;
+}
+
+.card .icon {
+  width: 40px;
+  height: 40px;
+  background: var(--primary);
+  margin: 0 auto 15px;
+}
+
+/* CARA */
+.cara {
+  padding: 100px 0;
+}
+
+.cara-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 50px;
+}
+
+.steps .step {
+  margin-bottom: 20px;
+  color: var(--text-dark);
+}
+
+.steps .active p {
+  color: var(--text-light);
+}
+
+/* CTA */
+.cta {
+  background: var(--primary);
+  padding: 60px 0;
+  margin-top: 60px;
+}
+
+.cta-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.btn-dark {
+  background: #111;
+  color: #fff;
+  padding: 12px 24px;
+  border: none;
+}
+
+/* FOOTER */
+.footer {
+  background: var(--dark-blue);
+  color: #fff;
+  padding: 60px 0 20px;
+}
+
+.footer-grid {
+  display: flex;
+  justify-content: space-between;
+}
+
+.footer p {
+  color: #ddd;
+}
+
+.copyright {
+  text-align: center;
+  margin-top: 30px;
+  font-size: 12px;
+  color: #bbb;
+}
