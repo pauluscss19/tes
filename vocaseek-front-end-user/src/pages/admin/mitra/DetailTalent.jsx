@@ -8,14 +8,13 @@ import {
   UserRound,
   GraduationCap,
   FolderOpen,
-  Globe,
   ShieldCheck,
   Folder,
   FileText,
   BadgeCheck,
 } from "lucide-react";
 import { FaInstagram, FaLinkedinIn } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 
 function InfoLabel({ title, value }) {
   return (
@@ -38,13 +37,7 @@ function Chip({ children, blue = false }) {
   );
 }
 
-function FileItem({
-  title,
-  subtitle,
-  color = "orange",
-  empty = false,
-  onClick,
-}) {
+function FileItem({ title, subtitle, color = "orange", empty = false, onClick }) {
   const colorClassMap = {
     orange: "detail-talent__file-icon--orange",
     blue: "detail-talent__file-icon--blue",
@@ -62,9 +55,7 @@ function FileItem({
       }`}
     >
       <div className="detail-talent__file-item-left">
-        <div
-          className={`detail-talent__file-icon ${colorClassMap[color]}`}
-        >
+        <div className={`detail-talent__file-icon ${colorClassMap[color]}`}>
           {title.includes("Curriculum") && <FileText size={20} />}
           {title.includes("Portfolio") && <Folder size={20} />}
           {title.includes("KTP") && <BadgeCheck size={20} />}
@@ -102,6 +93,7 @@ function FileItem({
 
 export default function DetailTalent() {
   const navigate = useNavigate();
+  const { id } = useParams(); // ✅ ambil id dari URL, misal "KDT-022"
 
   return (
     <div className="detail-talent">
@@ -126,7 +118,7 @@ export default function DetailTalent() {
           <div className="detail-talent__header">
             <div className="detail-talent__header-left">
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/admin/mitra/talent/semua-kandidat")}
                 className="detail-talent__back-btn"
               >
                 <ArrowLeft size={28} />
@@ -151,6 +143,7 @@ export default function DetailTalent() {
           </div>
 
           <div className="detail-talent__grid">
+            {/* ===== KOLOM KIRI — DATA PRIBADI ===== */}
             <div className="detail-talent__card detail-talent__card--personal">
               <div className="detail-talent__card-header detail-talent__card-header--with-border">
                 <UserRound size={22} className="detail-talent__card-header-icon" />
@@ -166,17 +159,12 @@ export default function DetailTalent() {
                       className="detail-talent__avatar-image"
                     />
                   </div>
-
                   <div className="detail-talent__avatar-status" />
                 </div>
 
                 <div className="detail-talent__profile-meta">
-                  <div className="detail-talent__profile-name">
-                    Sarah Jenkins
-                  </div>
-                  <div className="detail-talent__profile-role">
-                    Mechanical Engineer
-                  </div>
+                  <div className="detail-talent__profile-name">Sarah Jenkins</div>
+                  <div className="detail-talent__profile-role">Mechanical Engineer</div>
                 </div>
               </div>
 
@@ -191,11 +179,9 @@ export default function DetailTalent() {
               </div>
 
               <div className="detail-talent__info-list">
+                <InfoLabel title="ID Kandidat" value={id?.toUpperCase()} />
                 <InfoLabel title="Jenis Kelamin" value="Perempuan" />
-                <InfoLabel
-                  title="Tempat, Tanggal Lahir"
-                  value="Bandung, 12 Mei 1997"
-                />
+                <InfoLabel title="Tempat, Tanggal Lahir" value="Bandung, 12 Mei 1997" />
                 <InfoLabel title="Email" value="sarah.j@example.com" />
                 <InfoLabel title="No Handphone" value="+62 812 3456 7890" />
                 <InfoLabel
@@ -209,7 +195,7 @@ export default function DetailTalent() {
                 <div className="detail-talent__social-row">
                   <button className="detail-talent__social-btn">
                     <FaLinkedinIn size={16} />
-                    Linkediln
+                    LinkedIn
                   </button>
                   <button className="detail-talent__social-btn">
                     <FaInstagram size={16} />
@@ -219,29 +205,21 @@ export default function DetailTalent() {
               </div>
             </div>
 
+            {/* ===== KOLOM TENGAH — AKADEMIK & ASSESSMENT ===== */}
             <div className="detail-talent__center-column">
               <div className="detail-talent__card">
                 <div className="detail-talent__card-header detail-talent__card-header--with-border">
-                  <GraduationCap
-                    size={22}
-                    className="detail-talent__card-header-icon"
-                  />
+                  <GraduationCap size={22} className="detail-talent__card-header-icon" />
                   <h2 className="detail-talent__card-title">Data Akademik</h2>
                 </div>
 
                 <div className="detail-talent__card-body-top">
-                  <div className="detail-talent__section-heading">
-                    Pendidikan
-                  </div>
+                  <div className="detail-talent__section-heading">Pendidikan</div>
 
                   <div className="detail-talent__education-row">
                     <div className="detail-talent__education-icon">
-                      <GraduationCap
-                        size={16}
-                        className="detail-talent__education-icon-inner"
-                      />
+                      <GraduationCap size={16} className="detail-talent__education-icon-inner" />
                     </div>
-
                     <div>
                       <div className="detail-talent__education-title">
                         Institut Teknologi Bandung (ITB)
@@ -273,9 +251,7 @@ export default function DetailTalent() {
 
                     <div className="detail-talent__timeline-item">
                       <span className="detail-talent__timeline-dot detail-talent__timeline-dot--inactive" />
-                      <div className="detail-talent__timeline-title">
-                        Junior Engineer
-                      </div>
+                      <div className="detail-talent__timeline-title">Junior Engineer</div>
                       <div className="detail-talent__timeline-subtitle">
                         CV. Teknik Prima
                         <br />
@@ -297,7 +273,7 @@ export default function DetailTalent() {
                   </div>
                   <div className="detail-talent__chip-row">
                     <Chip blue>AutoCAD</Chip>
-                    <Chip blue>Solid works</Chip>
+                    <Chip blue>Solidworks</Chip>
                     <Chip blue>MATLAB</Chip>
                     <Chip>Team Leadership</Chip>
                   </div>
@@ -307,12 +283,8 @@ export default function DetailTalent() {
               <div className="detail-talent__card">
                 <div className="detail-talent__assessment-header">
                   <div className="detail-talent__assessment-icon-box">
-                    <ShieldCheck
-                      size={20}
-                      className="detail-talent__assessment-icon"
-                    />
+                    <ShieldCheck size={20} className="detail-talent__assessment-icon" />
                   </div>
-
                   <div>
                     <div className="detail-talent__assessment-title">
                       Hasil Online Assessment
@@ -332,9 +304,10 @@ export default function DetailTalent() {
                 </div>
 
                 <div className="detail-talent__assessment-action">
+                  {/* ✅ navigasi dinamis pakai id */}
                   <button
                     onClick={() =>
-                      navigate("/admin/mitra/talent/kdt-001/assessment-review")
+                      navigate(`/admin/mitra/talent/${id}/assessment-review`)
                     }
                     className="detail-talent__assessment-btn"
                   >
@@ -344,38 +317,35 @@ export default function DetailTalent() {
               </div>
             </div>
 
+            {/* ===== KOLOM KANAN — DOKUMEN ===== */}
             <div className="detail-talent__card detail-talent__card--documents">
               <div className="detail-talent__card-header detail-talent__card-header--with-border">
-                <FolderOpen
-                  size={22}
-                  className="detail-talent__card-header-icon"
-                />
-                <h2 className="detail-talent__card-title">
-                  Dokumen Pendukung
-                </h2>
+                <FolderOpen size={22} className="detail-talent__card-header-icon" />
+                <h2 className="detail-talent__card-title">Dokumen Pendukung</h2>
               </div>
 
               <p className="detail-talent__documents-desc">
                 Dokumen yang telah divalidasi dan diunggah oleh kandidat.
               </p>
 
+              {/* ✅ semua navigate pakai id dinamis */}
               <FileItem
                 title="Curriculum Vitae"
                 subtitle="CV - SarahJenkins.pdf"
                 color="orange"
-                onClick={() => navigate("/admin/mitra/talent/kdt-001/review-dokumen")}
+                onClick={() => navigate(`/admin/mitra/talent/${id}/review-dokumen`)}
               />
               <FileItem
                 title="Portfolio"
                 subtitle="Portfolio-Sarah.pdf"
                 color="blue"
-                onClick={() => navigate("/admin/mitra/talent/kdt-001/review-dokumen")}
+                onClick={() => navigate(`/admin/mitra/talent/${id}/review-dokumen`)}
               />
               <FileItem
                 title="KTP / Identitas Diri"
                 subtitle="KTP_3#ficial.pdf"
                 color="green"
-                onClick={() => navigate("/admin/mitra/talent/kdt-001/review-dokumen")}
+                onClick={() => navigate(`/admin/mitra/talent/${id}/review-dokumen`)}
               />
               <FileItem
                 title="Surat Rekomendasi"

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanyProfile extends Model
 {
-    protected $table = 'company_profile';
+    protected $table = 'company_profiles';
     protected $primaryKey = 'id';
     
     public $timestamps = true;

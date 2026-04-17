@@ -81,14 +81,13 @@ import DashboardStaff from "./pages/admin/staff/DashboardStaff";
 import TalentManagementStaff from "./pages/admin/staff/TalentManagement_Staff";
 import TalentDetailStaff from "./pages/admin/staff/TalentDetail_Staff";
 import ReviewDokumenStaff from "./pages/admin/staff/ReviewDokumen_Staff";
-
 import PartnerManagementStaff from "./pages/admin/staff/PartnerManagement_Staff";
 import PartnerDetailStaff from "./pages/admin/staff/PartnerDetail_Staff";
 import ReviewDokumenMitraStaff from "./pages/admin/staff/ReviewDokumenMitra_Staff";
 import AddCompanyStaff from "./pages/admin/staff/AddCompany_Staff";
-
 import ProfileStaff from "./pages/admin/staff/Profile_Staff";
 import EditProfileStaff from "./pages/admin/staff/EditProfile_Staff";
+
 import {
   getUserRole,
   isAuthenticated,
@@ -96,12 +95,10 @@ import {
 } from "./utils/authStorage";
 
 function ProtectedRoute({ children, allowedRoles = [] }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(
-    () => isAuthenticated(),
-  );
+  const [isLoggedIn, setIsLoggedIn] = useState(() => isAuthenticated());
   const [role, setRole] = useState(() => getUserRole());
-  const normalizedAllowedRoles = allowedRoles.map((allowedRole) =>
-    String(allowedRole).toLowerCase(),
+  const normalizedAllowedRoles = allowedRoles.map((r) =>
+    String(r).toLowerCase()
   );
 
   useEffect(() => {
@@ -109,10 +106,8 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
       setIsLoggedIn(isAuthenticated());
       setRole(getUserRole());
     };
-
     window.addEventListener("storage", syncLoginState);
     window.addEventListener("auth-changed", syncLoginState);
-
     return () => {
       window.removeEventListener("storage", syncLoginState);
       window.removeEventListener("auth-changed", syncLoginState);
@@ -123,16 +118,14 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
     const loginPath = normalizedAllowedRoles.includes("company")
       ? "/login-company"
       : "/login";
-
     return <Navigate to={loginPath} replace />;
   }
 
   if (allowedRoles.length > 0) {
     const normalizedRole = String(role).toLowerCase();
-    const hasAccess = normalizedAllowedRoles.some((allowedRole) =>
-      normalizedRole === allowedRole,
+    const hasAccess = normalizedAllowedRoles.some(
+      (r) => normalizedRole === r
     );
-
     if (!hasAccess) {
       return <Navigate to={resolveUserHomeRoute(role)} replace />;
     }
@@ -150,10 +143,8 @@ function GuestRoute({ children }) {
       setIsLoggedIn(isAuthenticated());
       setRole(getUserRole());
     };
-
     window.addEventListener("storage", syncLoginState);
     window.addEventListener("auth-changed", syncLoginState);
-
     return () => {
       window.removeEventListener("storage", syncLoginState);
       window.removeEventListener("auth-changed", syncLoginState);
@@ -174,44 +165,9 @@ export default function App() {
       <GlobalTranslator />
       <FloatingLanguageSwitcher />
       <Routes>
-        {/* Route utama dari app pertama */}
+
+        {/* ===== PUBLIC ROUTES ===== */}
         <Route path="/" element={<Beranda />} />
-        <Route
-          path="/login"
-          element={
-            <GuestRoute>
-              <Login />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/login-company"
-          element={
-            <GuestRoute>
-              <LoginCompany />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/register"
-          element={
-            <GuestRoute>
-              <RegisterPelamar />
-            </GuestRoute>
-          }
-        />
-        <Route
-          path="/register-company"
-          element={
-            <GuestRoute>
-              <RegisterCompany />
-            </GuestRoute>
-          }
-        />
-        <Route path="/register-success" element={<RegisterSuccess />} />
-        <Route path="/forget-password" element={<ForgetPassword />} />
-        <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/reset-success" element={<ResetSuccess />} />
         <Route path="/lowongan" element={<Lowongan />} />
         <Route path="/mitra" element={<Mitra />} />
         <Route path="/kontak" element={<Kontak />} />
@@ -220,487 +176,105 @@ export default function App() {
         <Route path="/success-apply" element={<SuccessApply />} />
         <Route path="/review-lamaran" element={<ReviewLamaran />} />
         <Route path="/profil/data-diri" element={<DataDiri />} />
-        <Route
-          path="/home"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/searchlowongan"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <SearchLowongan />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/searchmitra"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <SearchMitra />
-            </ProtectedRoute>
-          }
-        />
         <Route path="/mitra/:id" element={<MitraDetail />} />
-        <Route
-          path="/contact"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <Contact />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profil"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <ProfilLayout />
-            </ProtectedRoute>
-          }
-        >
+        <Route path="/register-success" element={<RegisterSuccess />} />
+        <Route path="/forget-password" element={<ForgetPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-success" element={<ResetSuccess />} />
+        <Route path="/soal" element={<Navigate to="/soal/1" replace />} />
+        <Route path="/soal/:no" element={<Soal />} />
+        <Route path="/soal-1" element={<Navigate to="/soal/1" replace />} />
+        <Route path="/selesai-test" element={<SelesaiTest />} />
+
+        {/* ===== GUEST ROUTES ===== */}
+        <Route path="/login" element={<GuestRoute><Login /></GuestRoute>} />
+        <Route path="/login-company" element={<GuestRoute><LoginCompany /></GuestRoute>} />
+        <Route path="/register" element={<GuestRoute><RegisterPelamar /></GuestRoute>} />
+        <Route path="/register-company" element={<GuestRoute><RegisterCompany /></GuestRoute>} />
+
+        {/* ===== USER / INTERN ROUTES ===== */}
+        <Route path="/home" element={<ProtectedRoute allowedRoles={["intern"]}><Home /></ProtectedRoute>} />
+        <Route path="/searchlowongan" element={<ProtectedRoute allowedRoles={["intern"]}><SearchLowongan /></ProtectedRoute>} />
+        <Route path="/searchmitra" element={<ProtectedRoute allowedRoles={["intern"]}><SearchMitra /></ProtectedRoute>} />
+        <Route path="/contact" element={<ProtectedRoute allowedRoles={["intern"]}><Contact /></ProtectedRoute>} />
+        <Route path="/tampilan-profil" element={<ProtectedRoute allowedRoles={["intern"]}><TampilanProfil /></ProtectedRoute>} />
+        <Route path="/status-lamaran" element={<ProtectedRoute allowedRoles={["intern"]}><StatusLamaran /></ProtectedRoute>} />
+        <Route path="/after-test" element={<ProtectedRoute allowedRoles={["intern"]}><AfterTest /></ProtectedRoute>} />
+        <Route path="/review-jawaban" element={<ProtectedRoute allowedRoles={["intern"]}><ReviewJawaban /></ProtectedRoute>} />
+        <Route path="/pretest" element={<ProtectedRoute allowedRoles={["intern"]}><Pretest /></ProtectedRoute>} />
+        <Route path="/histori-lamaran" element={<ProtectedRoute allowedRoles={["intern"]}><Histori /></ProtectedRoute>} />
+
+        <Route path="/profil" element={<ProtectedRoute allowedRoles={["intern"]}><ProfilLayout /></ProtectedRoute>}>
           <Route index element={<DataDiri />} />
           <Route path="tampilan" element={<TampilanProfil />} />
           <Route path="data-akademik" element={<Akademik />} />
           <Route path="data-akademik/simpan" element={<SimpanAkademik />} />
           <Route path="dokumen" element={<Dokumen />} />
         </Route>
-        <Route
-          path="/tampilan-profil"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <TampilanProfil />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/status-lamaran"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <StatusLamaran />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/after-test"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <AfterTest />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/review-jawaban"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <ReviewJawaban />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/pretest"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <Pretest />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/histori-lamaran"
-          element={
-            <ProtectedRoute allowedRoles={["intern"]}>
-              <Histori />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="/soal" element={<Navigate to="/soal/1" replace />} />
-        <Route path="/soal/:no" element={<Soal />} />
-        <Route path="/selesai-test" element={<SelesaiTest />} />
-        <Route path="/soal-1" element={<Navigate to="/soal/1" replace />} />
-        {/* Admin routes */}
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <Navigate to="/admin/dashboard" replace />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/talent-management"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <TalentManagementSuper />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/talent/:id"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <TalentDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/talent/:id/assessment-review"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <AssessmentReview />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/talent/:id/review-dokumen"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <ReviewDokumenSuper />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/partners"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <PartnerManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/partners/add-company"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <AddCompany />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/partners/:id"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <PartnerDetail />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/partners/:id/review-dokumen-mitra"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <ReviewDokumenMitra />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/user-management"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <UserManagement />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/user-management/add-admin"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <AddAdmin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/user-management/edit-admin/:id"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <EditAdmin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/verifikasi-perusahaan"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <CompanyVerification />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/verifikasi-perusahaan/:id/review"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <CompanyVerificationReview />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/verifikasi-perusahaan/:id/review/dokumen/:docType"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <CompanyDocumentPreview />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/profil"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/profil/edit"
-          element={
-            <ProtectedRoute allowedRoles={["super_admin"]}>
-              <EditProfile />
-            </ProtectedRoute>
-          }
-        />
-        {/* Legacy redirects for old admin links without /admin prefix */}
-        <Route
-          path="/talent-management"
-          element={<Navigate to="/admin/talent-management" replace />}
-        />
-        <Route
-          path="/partners"
-          element={<Navigate to="/admin/partners" replace />}
-        />
-        <Route
-          path="/partners/add-company"
-          element={<Navigate to="/admin/partners/add-company" replace />}
-        />
-        <Route
-          path="/user-management"
-          element={<Navigate to="/admin/user-management" replace />}
-        />
-        <Route
-          path="/user-management/add-admin"
-          element={<Navigate to="/admin/user-management/add-admin" replace />}
-        />
-        <Route
-          path="/verifikasi-perusahaan"
-          element={<Navigate to="/admin/verifikasi-perusahaan" replace />}
-        />
-        <Route path="*" element={<div style={{ padding: 16 }}>404</div>} />
-        
-        // MITRA ROUTES
-        <Route
-          path="/admin/mitra"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <Navigate to="/admin/mitra/dashboard" replace />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <DashboardMitra />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/lowongan"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <JobPostings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/lowongan/tambah"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <CreateJob />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/lowongan/pratinjau"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <CreateJobPreview />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/lowongan/applicants"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <JobApplicants />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/company-profile"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <CompanyProfile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/company-profile/settings"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <CompanyProfileSettings />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/talent"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <Navigate to="/admin/mitra/talent/semua-kandidat" replace />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/tambah-kandidat"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <TambahKandidat />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/talent/semua-kandidat"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <TalentManagement mode="all" />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/talent/kandidat-terpilih"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <TalentManagement mode="shortlisted" />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/talent/kdt-001"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <DetailTalent />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/talent/kdt-001/review-dokumen"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <ReviewDokumen />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/mitra/talent/kdt-001/assessment-review"
-          element={
-            <ProtectedRoute allowedRoles={["company"]}>
-              <AssessmentReview />
-            </ProtectedRoute>
-          }
-        />
-        {/* STAFF ADMIN ROUTES */}
-        <Route
-          path="/admin/staff"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <Navigate to="/admin/staff/dashboard" replace />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <DashboardStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/talent-management"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <TalentManagementStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/talent/:id"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <TalentDetailStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/talent/:id/review-dokumen"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <ReviewDokumenStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/partners"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <PartnerManagementStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/partners/add-company"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <AddCompanyStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/partners/:id"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <PartnerDetailStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/partners/:id/review-dokumen-mitra"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <ReviewDokumenMitraStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/profil"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <ProfileStaff />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/staff/profil/edit"
-          element={
-            <ProtectedRoute allowedRoles={["staff_admin"]}>
-              <EditProfileStaff />
-            </ProtectedRoute>
-          }
-        />
+
+        {/* ===== SUPER ADMIN ROUTES ===== */}
+        <Route path="/admin" element={<ProtectedRoute allowedRoles={["super_admin"]}><Navigate to="/admin/dashboard" replace /></ProtectedRoute>} />
+        <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={["super_admin"]}><Dashboard /></ProtectedRoute>} />
+        <Route path="/admin/talent-management" element={<ProtectedRoute allowedRoles={["super_admin"]}><TalentManagementSuper /></ProtectedRoute>} />
+        <Route path="/admin/talent/:id" element={<ProtectedRoute allowedRoles={["super_admin"]}><TalentDetail /></ProtectedRoute>} />
+        <Route path="/admin/talent/:id/assessment-review" element={<ProtectedRoute allowedRoles={["super_admin"]}><AssessmentReview /></ProtectedRoute>} />
+        <Route path="/admin/talent/:id/review-dokumen" element={<ProtectedRoute allowedRoles={["super_admin"]}><ReviewDokumenSuper /></ProtectedRoute>} />
+        <Route path="/admin/partners" element={<ProtectedRoute allowedRoles={["super_admin"]}><PartnerManagement /></ProtectedRoute>} />
+        <Route path="/admin/partners/add-company" element={<ProtectedRoute allowedRoles={["super_admin"]}><AddCompany /></ProtectedRoute>} />
+        <Route path="/admin/partners/:id" element={<ProtectedRoute allowedRoles={["super_admin"]}><PartnerDetail /></ProtectedRoute>} />
+        <Route path="/admin/partners/:id/review-dokumen-mitra" element={<ProtectedRoute allowedRoles={["super_admin"]}><ReviewDokumenMitra /></ProtectedRoute>} />
+        <Route path="/admin/user-management" element={<ProtectedRoute allowedRoles={["super_admin"]}><UserManagement /></ProtectedRoute>} />
+        <Route path="/admin/user-management/add-admin" element={<ProtectedRoute allowedRoles={["super_admin"]}><AddAdmin /></ProtectedRoute>} />
+        <Route path="/admin/user-management/edit-admin/:id" element={<ProtectedRoute allowedRoles={["super_admin"]}><EditAdmin /></ProtectedRoute>} />
+        <Route path="/admin/verifikasi-perusahaan" element={<ProtectedRoute allowedRoles={["super_admin"]}><CompanyVerification /></ProtectedRoute>} />
+        <Route path="/admin/verifikasi-perusahaan/:id/review" element={<ProtectedRoute allowedRoles={["super_admin"]}><CompanyVerificationReview /></ProtectedRoute>} />
+        <Route path="/admin/verifikasi-perusahaan/:id/review/dokumen/:docType" element={<ProtectedRoute allowedRoles={["super_admin"]}><CompanyDocumentPreview /></ProtectedRoute>} />
+        <Route path="/admin/profil" element={<ProtectedRoute allowedRoles={["super_admin"]}><Profile /></ProtectedRoute>} />
+        <Route path="/admin/profil/edit" element={<ProtectedRoute allowedRoles={["super_admin"]}><EditProfile /></ProtectedRoute>} />
+
+        {/* Legacy redirects */}
+        <Route path="/talent-management" element={<Navigate to="/admin/talent-management" replace />} />
+        <Route path="/partners" element={<Navigate to="/admin/partners" replace />} />
+        <Route path="/partners/add-company" element={<Navigate to="/admin/partners/add-company" replace />} />
+        <Route path="/user-management" element={<Navigate to="/admin/user-management" replace />} />
+        <Route path="/user-management/add-admin" element={<Navigate to="/admin/user-management/add-admin" replace />} />
+        <Route path="/verifikasi-perusahaan" element={<Navigate to="/admin/verifikasi-perusahaan" replace />} />
+
+        {/* ===== MITRA / COMPANY ROUTES ===== */}
+        <Route path="/admin/mitra" element={<ProtectedRoute allowedRoles={["company"]}><Navigate to="/admin/mitra/dashboard" replace /></ProtectedRoute>} />
+        <Route path="/admin/mitra/dashboard" element={<ProtectedRoute allowedRoles={["company"]}><DashboardMitra /></ProtectedRoute>} />
+        <Route path="/admin/mitra/lowongan" element={<ProtectedRoute allowedRoles={["company"]}><JobPostings /></ProtectedRoute>} />
+        <Route path="/admin/mitra/lowongan/tambah" element={<ProtectedRoute allowedRoles={["company"]}><CreateJob /></ProtectedRoute>} />
+        <Route path="/admin/mitra/lowongan/pratinjau" element={<ProtectedRoute allowedRoles={["company"]}><CreateJobPreview /></ProtectedRoute>} />
+        <Route path="/admin/mitra/lowongan/applicants" element={<ProtectedRoute allowedRoles={["company"]}><JobApplicants /></ProtectedRoute>} />
+        <Route path="/admin/mitra/company-profile" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfile /></ProtectedRoute>} />
+        <Route path="/admin/mitra/company-profile/settings" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfileSettings /></ProtectedRoute>} />
+        <Route path="/admin/mitra/talent" element={<ProtectedRoute allowedRoles={["company"]}><Navigate to="/admin/mitra/talent/semua-kandidat" replace /></ProtectedRoute>} />
+        <Route path="/admin/mitra/tambah-kandidat" element={<ProtectedRoute allowedRoles={["company"]}><TambahKandidat /></ProtectedRoute>} />
+        <Route path="/admin/mitra/talent/semua-kandidat" element={<ProtectedRoute allowedRoles={["company"]}><TalentManagement mode="all" /></ProtectedRoute>} />
+        <Route path="/admin/mitra/talent/kandidat-terpilih" element={<ProtectedRoute allowedRoles={["company"]}><TalentManagement mode="shortlisted" /></ProtectedRoute>} />
+
+        {/* ✅ FIXED: dinamis pakai :id */}
+        <Route path="/admin/mitra/talent/:id" element={<ProtectedRoute allowedRoles={["company"]}><DetailTalent /></ProtectedRoute>} />
+        <Route path="/admin/mitra/talent/:id/review-dokumen" element={<ProtectedRoute allowedRoles={["company"]}><ReviewDokumen /></ProtectedRoute>} />
+        <Route path="/admin/mitra/talent/:id/assessment-review" element={<ProtectedRoute allowedRoles={["company"]}><AssessmentReview /></ProtectedRoute>} />
+
+        {/* ===== STAFF ADMIN ROUTES ===== */}
+        <Route path="/admin/staff" element={<ProtectedRoute allowedRoles={["staff_admin"]}><Navigate to="/admin/staff/dashboard" replace /></ProtectedRoute>} />
+        <Route path="/admin/staff/dashboard" element={<ProtectedRoute allowedRoles={["staff_admin"]}><DashboardStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/talent-management" element={<ProtectedRoute allowedRoles={["staff_admin"]}><TalentManagementStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/talent/:id" element={<ProtectedRoute allowedRoles={["staff_admin"]}><TalentDetailStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/talent/:id/review-dokumen" element={<ProtectedRoute allowedRoles={["staff_admin"]}><ReviewDokumenStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/partners" element={<ProtectedRoute allowedRoles={["staff_admin"]}><PartnerManagementStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/partners/add-company" element={<ProtectedRoute allowedRoles={["staff_admin"]}><AddCompanyStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/partners/:id" element={<ProtectedRoute allowedRoles={["staff_admin"]}><PartnerDetailStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/partners/:id/review-dokumen-mitra" element={<ProtectedRoute allowedRoles={["staff_admin"]}><ReviewDokumenMitraStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/profil" element={<ProtectedRoute allowedRoles={["staff_admin"]}><ProfileStaff /></ProtectedRoute>} />
+        <Route path="/admin/staff/profil/edit" element={<ProtectedRoute allowedRoles={["staff_admin"]}><EditProfileStaff /></ProtectedRoute>} />
+
+        {/* ===== 404 ===== */}
+        <Route path="*" element={<div style={{ padding: 16 }}>404 - Halaman tidak ditemukan</div>} />
+
       </Routes>
     </>
   );

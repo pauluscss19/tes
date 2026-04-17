@@ -186,7 +186,7 @@ export default function SearchLowongan() {
 
     setScopedItem(USER_STORAGE_KEYS.appliedJob, JSON.stringify(appliedJobData));
     window.dispatchEvent(new Event("career-journey-updated"));
-    navigate("/daftar-magang");
+    navigate("/daftar-magang", { state: { job: appliedJobData } });
   };
 
   return (

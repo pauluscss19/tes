@@ -1,6 +1,6 @@
-import "../styles/ReviewDokumen.css";
-import Sidebar from "../components/Sidebar";
-import Topbar from "../components/Topbar";
+import "../../../styles/admin/ReviewDokumen.css";
+import Sidebar from "../../../components/admin/SidebarMitra";
+import Topbar from "../../../components/admin/TopbarMitra";
 import {
   ArrowLeft,
   BriefcaseBusiness,
@@ -15,15 +15,10 @@ import {
   Download,
   FileBadge,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
 
-function DocMenuItem({
-  title,
-  subtitle,
-  active = false,
-  icon,
-  onClick,
-}) {
+function DocMenuItem({ title, subtitle, active = false, icon, onClick }) {
   return (
     <button
       onClick={onClick}
@@ -42,7 +37,6 @@ function DocMenuItem({
       >
         {icon}
       </div>
-
       <div>
         <div
           className={`review-dokumen__doc-title ${
@@ -53,7 +47,6 @@ function DocMenuItem({
         >
           {title}
         </div>
-
         <div
           className={`review-dokumen__doc-subtitle ${
             active
@@ -70,6 +63,64 @@ function DocMenuItem({
 
 export default function ReviewDokumen() {
   const navigate = useNavigate();
+  const { id } = useParams(); // ✅ ambil id dari URL
+  const location = useLocation();
+
+  // ✅ Ambil data talent dari location.state (dikirim saat navigate dari DetailTalent)
+  // Fallback ke placeholder kalau state kosong
+  const talentFromState = location.state?.talent || null;
+
+  const [talent, setTalent] = useState(talentFromState);
+  const [activeDoc, setActiveDoc] = useState("cv");
+
+  // Jika tidak ada state, bisa fetch dari API berdasarkan id
+  useEffect(() => {
+    if (!talent && id) {
+      // TODO: ganti dengan API call sebenarnya
+      // contoh: fetchTalentById(id).then(data => setTalent(data));
+      // Sementara pakai placeholder agar tidak kosong
+      setTalent({
+        name: id.toUpperCase(),
+        role: "Kandidat",
+        photo: null,
+        documents: {
+          cv: { name: `CV_${id}.pdf`, size: "2.4 MB", date: "-" },
+          portfolio: { name: `Portfolio_${id}.pdf`, size: "12.4 MB", date: "-" },
+          ktp: { name: `KTP_${id}.jpg`, size: "1.2 MB", date: "-" },
+          transkrip: { name: `Transkrip_${id}.pdf`, size: "4.8 MB", date: "-" },
+        },
+      });
+    }
+  }, [id, talent]);
+
+  const docList = [
+    {
+      key: "cv",
+      title: "Curriculum Vitae",
+      subtitle: talent?.documents?.cv?.name || "PDF",
+      icon: <FileText size={18} />,
+    },
+    {
+      key: "portfolio",
+      title: "Portfolio",
+      subtitle: talent?.documents?.portfolio?.name || "PDF",
+      icon: <FolderOpen size={18} />,
+    },
+    {
+      key: "ktp",
+      title: "KTP / ID Card",
+      subtitle: talent?.documents?.ktp?.name || "JPG",
+      icon: <BadgeCheck size={18} />,
+    },
+    {
+      key: "transkrip",
+      title: "Transkrip Nilai",
+      subtitle: talent?.documents?.transkrip?.name || "PDF",
+      icon: <GraduationCap size={18} />,
+    },
+  ];
+
+  const activeDocData = talent?.documents?.[activeDoc];
 
   return (
     <div className="review-dokumen">
@@ -82,41 +133,43 @@ export default function ReviewDokumen() {
           <div className="review-dokumen__breadcrumb">
             <span className="review-dokumen__breadcrumb-muted">ADMIN</span>
             <span className="review-dokumen__breadcrumb-muted">›</span>
-            <span className="review-dokumen__breadcrumb-muted">
-              TALENT MANAGEMENT
-            </span>
+            <span className="review-dokumen__breadcrumb-muted">TALENT MANAGEMENT</span>
             <span className="review-dokumen__breadcrumb-muted">›</span>
-            <span className="review-dokumen__breadcrumb-muted">
-              DETAIL PROFIL
-            </span>
+            <span className="review-dokumen__breadcrumb-muted">DETAIL PROFIL</span>
             <span className="review-dokumen__breadcrumb-muted">›</span>
-            <span className="review-dokumen__breadcrumb-active">
-              REVIEW DOKUMEN
-            </span>
+            <span className="review-dokumen__breadcrumb-active">REVIEW DOKUMEN</span>
           </div>
 
           <div className="review-dokumen__header">
             <div className="review-dokumen__candidate">
               <div className="review-dokumen__avatar-box">
-                <img
-                  src="/Sarah_Jenkins.png"
-                  alt="Kandidat"
-                  className="review-dokumen__avatar-image"
-                />
+                {talent?.photo ? (
+                  <img
+                    src={talent.photo}
+                    alt="Kandidat"
+                    className="review-dokumen__avatar-image"
+                  />
+                ) : (
+                  <div className="review-dokumen__avatar-fallback">
+                    {talent?.name?.charAt(0) || "?"}
+                  </div>
+                )}
               </div>
 
               <div>
-                <h1 className="review-dokumen__title">Johnathan Doe</h1>
-
+                <h1 className="review-dokumen__title">
+                  {talent?.name || "Memuat..."}
+                </h1>
                 <div className="review-dokumen__role-row">
                   <BriefcaseBusiness size={15} />
-                  <span>Senior UI/UX Designer Candidate</span>
+                  <span>{talent?.role || id?.toUpperCase()}</span>
                 </div>
               </div>
             </div>
 
+            {/* ✅ tombol kembali ke detail talent dengan id yang sama */}
             <button
-              onClick={() => navigate("/talent/kdt-001")}
+              onClick={() => navigate(`/admin/mitra/talent/${id}`)}
               className="review-dokumen__back-btn"
             >
               <ArrowLeft size={22} />
@@ -125,36 +178,21 @@ export default function ReviewDokumen() {
           </div>
 
           <div className="review-dokumen__grid">
+            {/* ===== KIRI — LIST DOKUMEN ===== */}
             <div className="review-dokumen__left-column">
-              <div className="review-dokumen__menu-label">
-                Application Documents
-              </div>
+              <div className="review-dokumen__menu-label">Application Documents</div>
 
               <div className="review-dokumen__menu-list">
-                <DocMenuItem
-                  title="Curriculum Vitae"
-                  subtitle="Active Viewing"
-                  active
-                  icon={<FileText size={18} />}
-                />
-
-                <DocMenuItem
-                  title="Portfolio"
-                  subtitle="PDF, 12.4 MB"
-                  icon={<FolderOpen size={18} />}
-                />
-
-                <DocMenuItem
-                  title="KTP / ID Card"
-                  subtitle="JPG, 1.2 MB"
-                  icon={<BadgeCheck size={18} />}
-                />
-
-                <DocMenuItem
-                  title="Transkrip Nilai"
-                  subtitle="PDF, 4.8 MB"
-                  icon={<GraduationCap size={18} />}
-                />
+                {docList.map((doc) => (
+                  <DocMenuItem
+                    key={doc.key}
+                    title={doc.title}
+                    subtitle={activeDoc === doc.key ? "Active Viewing" : doc.subtitle}
+                    active={activeDoc === doc.key}
+                    icon={doc.icon}
+                    onClick={() => setActiveDoc(doc.key)}
+                  />
+                ))}
               </div>
 
               <div className="review-dokumen__verified-box">
@@ -162,12 +200,8 @@ export default function ReviewDokumen() {
                   <div className="review-dokumen__verified-icon-box">
                     <ShieldCheck size={18} />
                   </div>
-
                   <div>
-                    <div className="review-dokumen__verified-title">
-                      Verified Document
-                    </div>
-
+                    <div className="review-dokumen__verified-title">Verified Document</div>
                     <p className="review-dokumen__verified-text">
                       This document has been automatically verified by our system
                       for authenticity and malware safety.
@@ -177,21 +211,21 @@ export default function ReviewDokumen() {
               </div>
             </div>
 
+            {/* ===== KANAN — PREVIEW DOKUMEN ===== */}
             <div className="review-dokumen__right-column">
               <div className="review-dokumen__toolbar">
                 <div className="review-dokumen__toolbar-info">
                   <div className="review-dokumen__toolbar-file-icon">
                     <FileBadge size={20} />
                   </div>
-
                   <div>
                     <div className="review-dokumen__toolbar-file-name">
-                      CV_Johnathan_Doe_2024.pdf
+                      {activeDocData?.name || "-"}
                     </div>
-
                     <div className="review-dokumen__toolbar-file-meta">
-                      Uploaded on: Oct 12, 2023 &nbsp;&nbsp; · &nbsp;&nbsp; Size:
-                      2.4 MB
+                      Uploaded on: {activeDocData?.date || "-"}
+                      &nbsp;&nbsp;·&nbsp;&nbsp;
+                      Size: {activeDocData?.size || "-"}
                     </div>
                   </div>
                 </div>
@@ -201,9 +235,7 @@ export default function ReviewDokumen() {
                     <button className="review-dokumen__icon-btn">
                       <Search size={16} />
                     </button>
-
                     <span className="review-dokumen__zoom-text">100%</span>
-
                     <button className="review-dokumen__icon-btn">
                       <ZoomIn size={16} />
                     </button>
@@ -221,31 +253,36 @@ export default function ReviewDokumen() {
                 </div>
               </div>
 
+              {/* Preview area — tampilkan nama file sementara */}
               <div className="review-dokumen__preview-shell">
                 <div className="review-dokumen__preview-page">
                   <div className="review-dokumen__resume-top">
                     <div>
                       <h2 className="review-dokumen__resume-name">
-                        Johnathan Doe
+                        {talent?.name || "Nama Kandidat"}
                       </h2>
-
                       <div className="review-dokumen__resume-role">
-                        Senior UI/UX Designer
+                        {talent?.role || "-"}
                       </div>
-
                       <div className="review-dokumen__resume-contact">
-                        <span>✉ john.doe@email.com</span>
-                        <span>📞 +62 812 3456 7890</span>
-                        <span>📍 Jakarta, ID</span>
+                        <span>✉ {talent?.email || "-"}</span>
+                        <span>📞 {talent?.phone || "-"}</span>
+                        <span>📍 {talent?.address || "-"}</span>
                       </div>
                     </div>
 
                     <div className="review-dokumen__resume-avatar">
-                      <img
-                        src="/Sarah_Jenkins.png"
-                        alt="Kandidat"
-                        className="review-dokumen__resume-avatar-image"
-                      />
+                      {talent?.photo ? (
+                        <img
+                          src={talent.photo}
+                          alt="Kandidat"
+                          className="review-dokumen__resume-avatar-image"
+                        />
+                      ) : (
+                        <div className="review-dokumen__avatar-fallback review-dokumen__avatar-fallback--lg">
+                          {talent?.name?.charAt(0) || "?"}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -260,12 +297,8 @@ export default function ReviewDokumen() {
                             Professional Summary
                           </h3>
                         </div>
-
                         <p className="review-dokumen__resume-text">
-                          Innovative UI/UX Designer with over 8 years of experience
-                          building digital products. Proven track record of improving
-                          user engagement and retention through human-centric design
-                          patterns. Expert in Figma, Prototyping, and Design Systems.
+                          {talent?.summary || "Data belum tersedia."}
                         </p>
                       </div>
 
@@ -278,114 +311,66 @@ export default function ReviewDokumen() {
                         </div>
 
                         <div className="review-dokumen__timeline">
-                          <div className="review-dokumen__timeline-item">
-                            <span className="review-dokumen__timeline-dot review-dokumen__timeline-dot--active" />
-                            <div className="review-dokumen__timeline-title">
-                              Lead Product Designer
-                            </div>
-                            <div className="review-dokumen__timeline-company review-dokumen__timeline-company--active">
-                              TechNova Solutions | 2020 - Present
-                            </div>
-                            <p className="review-dokumen__timeline-text">
-                              Spearheaded the redesign of the main SaaS platform,
-                              resulting in a 35% increase in user productivity.
+                          {talent?.experiences?.length > 0 ? (
+                            talent.experiences.map((exp, i) => (
+                              <div key={i} className="review-dokumen__timeline-item">
+                                <span
+                                  className={`review-dokumen__timeline-dot ${
+                                    i === 0
+                                      ? "review-dokumen__timeline-dot--active"
+                                      : "review-dokumen__timeline-dot--inactive"
+                                  }`}
+                                />
+                                <div className="review-dokumen__timeline-title">
+                                  {exp.title}
+                                </div>
+                                <div
+                                  className={`review-dokumen__timeline-company ${
+                                    i === 0
+                                      ? "review-dokumen__timeline-company--active"
+                                      : ""
+                                  }`}
+                                >
+                                  {exp.company} | {exp.period}
+                                </div>
+                                <p className="review-dokumen__timeline-text">
+                                  {exp.description}
+                                </p>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="review-dokumen__resume-text">
+                              Data pengalaman belum tersedia.
                             </p>
-                            <p className="review-dokumen__timeline-text review-dokumen__timeline-text--mt">
-                              Managed a team of 5 designers and collaborated with
-                              stakeholders to align product vision.
-                            </p>
-                          </div>
-
-                          <div className="review-dokumen__timeline-item">
-                            <span className="review-dokumen__timeline-dot review-dokumen__timeline-dot--inactive" />
-                            <div className="review-dokumen__timeline-title">
-                              Senior UI Designer
-                            </div>
-                            <div className="review-dokumen__timeline-company">
-                              DesignFlow Agency | 2017 - 2020
-                            </div>
-                            <p className="review-dokumen__timeline-text">
-                              Delivered high-fidelity mockups and interactive
-                              prototypes for Fortune 500 clients.
-                            </p>
-                            <p className="review-dokumen__timeline-text review-dokumen__timeline-text--mt">
-                              Established the company&apos;s internal design system
-                              used across 12+ projects.
-                            </p>
-                          </div>
+                          )}
                         </div>
                       </div>
                     </div>
 
                     <div className="review-dokumen__resume-side">
                       <div>
-                        <div className="review-dokumen__resume-side-title">
-                          Core Skills
-                        </div>
-
+                        <div className="review-dokumen__resume-side-title">Skills</div>
                         <div className="review-dokumen__skill-list">
-                          {[
-                            "User Research",
-                            "Prototyping",
-                            "Interaction Design",
-                            "Design Systems",
-                            "Wireframing",
-                          ].map((skill) => (
-                            <div
-                              key={skill}
-                              className="review-dokumen__skill-chip"
-                            >
-                              {skill}
-                            </div>
-                          ))}
+                          {talent?.skills?.length > 0 ? (
+                            talent.skills.map((skill) => (
+                              <div key={skill} className="review-dokumen__skill-chip">
+                                {skill}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="review-dokumen__resume-text">-</p>
+                          )}
                         </div>
                       </div>
 
                       <div className="review-dokumen__resume-side-block">
-                        <div className="review-dokumen__resume-side-title">
-                          Tools
-                        </div>
-
-                        <div className="review-dokumen__tools-list">
-                          <div>
-                            <div className="review-dokumen__tool-label">
-                              <span>Figma</span>
-                            </div>
-                            <div className="review-dokumen__tool-bar-bg">
-                              <div className="review-dokumen__tool-bar review-dokumen__tool-bar--figma" />
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="review-dokumen__tool-label">
-                              <span>Adobe CC</span>
-                            </div>
-                            <div className="review-dokumen__tool-bar-bg">
-                              <div className="review-dokumen__tool-bar review-dokumen__tool-bar--adobe" />
-                            </div>
-                          </div>
-
-                          <div>
-                            <div className="review-dokumen__tool-label">
-                              <span>Frammer</span>
-                            </div>
-                            <div className="review-dokumen__tool-bar-bg">
-                              <div className="review-dokumen__tool-bar review-dokumen__tool-bar--frammer" />
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="review-dokumen__resume-side-block">
-                        <div className="review-dokumen__resume-side-title">
-                          Education
-                        </div>
-
+                        <div className="review-dokumen__resume-side-title">Education</div>
                         <div className="review-dokumen__education-degree">
-                          B.A. Graphic Design
+                          {talent?.education?.degree || "-"}
                         </div>
                         <div className="review-dokumen__education-meta">
-                          Binus University | 2013-2017
+                          {talent?.education?.institution || "-"} |{" "}
+                          {talent?.education?.period || "-"}
                         </div>
                       </div>
                     </div>

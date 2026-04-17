@@ -50,4 +50,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Alur Lamaran
     Route::post('/intern/apply', [InternController::class, 'applyJob']);
     Route::get('/intern/applications', [InternController::class, 'getMyApplications']);
+
+    Route::prefix('company/talent')->group(function () {
+    Route::get('/candidates',           [TalentController::class, 'getAllCandidates']);
+    Route::get('/candidates/{id}',      [TalentController::class, 'getCandidateDetail']);
+    Route::put('/candidates/{id}/status', [TalentController::class, 'updateCandidateStatus']);
+    Route::get('/selected',             [TalentController::class, 'getSelectedCandidates']);
+    Route::post('/manual',              [TalentController::class, 'storeManualCandidate']);
+});
 });

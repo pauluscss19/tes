@@ -8,14 +8,13 @@ import {
   UserRound,
   GraduationCap,
   FolderOpen,
-  Linkedin,
-  Instagram,
   ShieldCheck,
   Folder,
   FileText,
   BadgeCheck,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { FaInstagram, FaLinkedinIn } from "react-icons/fa";
+import { useNavigate, useParams } from "react-router-dom";
 
 function InfoLabel({ title, value }) {
   return (
@@ -38,18 +37,12 @@ function Chip({ children, blue = false }) {
   );
 }
 
-function FileItem({
-  title,
-  subtitle,
-  color = "orange",
-  empty = false,
-  onClick,
-}) {
+function FileItem({ title, subtitle, color = "orange", empty = false, onClick }) {
   const colorClassMap = {
     orange: "detail-talent__file-icon--orange",
-    blue: "detail-talent__file-icon--blue",
-    green: "detail-talent__file-icon--green",
-    gray: "detail-talent__file-icon--gray",
+    blue:   "detail-talent__file-icon--blue",
+    green:  "detail-talent__file-icon--green",
+    gray:   "detail-talent__file-icon--gray",
   };
 
   return (
@@ -62,14 +55,12 @@ function FileItem({
       }`}
     >
       <div className="detail-talent__file-item-left">
-        <div
-          className={`detail-talent__file-icon ${colorClassMap[color]}`}
-        >
+        <div className={`detail-talent__file-icon ${colorClassMap[color]}`}>
           {title.includes("Curriculum") && <FileText size={20} />}
-          {title.includes("Portfolio") && <Folder size={20} />}
-          {title.includes("KTP") && <BadgeCheck size={20} />}
-          {title.includes("Surat") && <FileText size={20} />}
-          {title.includes("Transkrip") && <GraduationCap size={20} />}
+          {title.includes("Portfolio")  && <Folder size={20} />}
+          {title.includes("KTP")        && <BadgeCheck size={20} />}
+          {title.includes("Surat")      && <FileText size={20} />}
+          {title.includes("Transkrip")  && <GraduationCap size={20} />}
         </div>
 
         <div>
@@ -100,8 +91,77 @@ function FileItem({
   );
 }
 
+// ── Data dummy per ID — nanti ganti dengan API call ──────────────────────────
+const TALENT_DATA = {
+  "kdt-001": {
+    name: "Sarah Jenkins",
+    role: "Mechanical Engineer",
+    photo: "/Sarah_Jenkins.png",
+    gender: "Perempuan",
+    birthplace: "Bandung, 12 Mei 1997",
+    email: "sarah.j@example.com",
+    phone: "+62 812 3456 7890",
+    address: "Jl. Ir. H. Juanda No. 100, Dago, Bandung, Jawa Barat",
+    bio: "Saya adalah insinyur mesin yang berdedikasi dengan pengalaman lebih dari 4 tahun dalam desain sistem hidrolik dan manajemen proyek.",
+    education: { name: "Institut Teknologi Bandung (ITB)", degree: "Sarjana Teknik Mesin • 2015 - 2019", gpa: "IPK 3.65" },
+    experiences: [
+      { title: "Senior Mechanical Engineer", company: "PT. Industri Maju Jaya", period: "2021 - Sekarang", active: true },
+      { title: "Junior Engineer", company: "CV. Teknik Prima", period: "2019 - 2021", active: false },
+    ],
+    certifications: ["Certified Solidworks Professional", "Project Management Professional (PMP)"],
+    skills: ["AutoCAD", "Solidworks", "MATLAB", "Team Leadership"],
+    assessment: "Sarah menunjukkan kemampuan analitis yang sangat kuat, terutama dalam pemecahan masalah teknis. Pendekatannya yang sistematis sangat cocok untuk peran teknis yang membutuhkan presisi tinggi.",
+    assessmentDate: "24 Okt 2023",
+    documents: {
+      cv:         { name: "CV - SarahJenkins.pdf",  size: "2.4 MB",  date: "12 Okt 2023", filled: true },
+      portfolio:  { name: "Portfolio-Sarah.pdf",     size: "12.4 MB", date: "12 Okt 2023", filled: true },
+      ktp:        { name: "KTP_3official.pdf",       size: "1.2 MB",  date: "12 Okt 2023", filled: true },
+      surat:      { name: "Belum ada file",          size: "",        date: "",             filled: false },
+      transkrip:  { name: "Belum ada file",          size: "",        date: "",             filled: false },
+    },
+  },
+  // tambahkan ID lain di sini atau ganti dengan fetch API
+};
+
 export default function DetailTalent() {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const { id }    = useParams(); // ✅ "kdt-001", "kdt-022", dst
+
+  // Cari data berdasarkan id (case-insensitive)
+  const talent = TALENT_DATA[id?.toLowerCase()] || null;
+
+  const buildTalentState = () => ({ talent: talent ? { ...talent, id } : null });
+
+  // Navigasi ke review-dokumen dengan membawa data talent
+  const goToReviewDokumen = () =>
+    navigate(`/talent/${id}/review-dokumen`, { state: buildTalentState() });
+
+  const goToAssessment = () =>
+    navigate(`/talent/${id}/assessment-review`, { state: buildTalentState() });
+
+  // Fallback kalau ID tidak ditemukan
+  if (!talent) {
+    return (
+      <div className="detail-talent">
+        <Sidebar />
+        <main className="detail-talent__main">
+          <Topbar />
+          <section className="detail-talent__section">
+            <div style={{ padding: "2rem", textAlign: "center" }}>
+              <p>Data kandidat <strong>{id?.toUpperCase()}</strong> tidak ditemukan.</p>
+              <button
+                onClick={() => navigate("/talent/semua-kandidat")}
+                className="detail-talent__back-btn"
+                style={{ marginTop: "1rem" }}
+              >
+                <ArrowLeft size={18} /> Kembali ke Daftar
+              </button>
+            </div>
+          </section>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="detail-talent">
@@ -114,27 +174,20 @@ export default function DetailTalent() {
           <div className="detail-talent__breadcrumb">
             <span className="detail-talent__breadcrumb-muted">ADMIN</span>
             <span className="detail-talent__breadcrumb-muted">›</span>
-            <span className="detail-talent__breadcrumb-muted">
-              TALENT MANAGEMENT
-            </span>
+            <span className="detail-talent__breadcrumb-muted">TALENT MANAGEMENT</span>
             <span className="detail-talent__breadcrumb-muted">›</span>
-            <span className="detail-talent__breadcrumb-active">
-              DETAIL PROFIL
-            </span>
+            <span className="detail-talent__breadcrumb-active">DETAIL PROFIL</span>
           </div>
 
           <div className="detail-talent__header">
             <div className="detail-talent__header-left">
               <button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/talent/semua-kandidat")}
                 className="detail-talent__back-btn"
               >
                 <ArrowLeft size={28} />
               </button>
-
-              <h1 className="detail-talent__page-title">
-                Ringkasan Profil Lengkap
-              </h1>
+              <h1 className="detail-talent__page-title">Ringkasan Profil Lengkap</h1>
             </div>
 
             <div className="detail-talent__header-actions">
@@ -142,7 +195,6 @@ export default function DetailTalent() {
                 <Mail size={18} />
                 Undang ke Email
               </button>
-
               <button className="detail-talent__primary-btn">
                 <Download size={18} />
                 Unduh CV
@@ -151,6 +203,8 @@ export default function DetailTalent() {
           </div>
 
           <div className="detail-talent__grid">
+
+            {/* ===== KOLOM KIRI — DATA PRIBADI ===== */}
             <div className="detail-talent__card detail-talent__card--personal">
               <div className="detail-talent__card-header detail-talent__card-header--with-border">
                 <UserRound size={22} className="detail-talent__card-header-icon" />
@@ -160,96 +214,77 @@ export default function DetailTalent() {
               <div className="detail-talent__profile-top">
                 <div className="detail-talent__avatar-wrapper">
                   <div className="detail-talent__avatar">
-                    <img
-                      src="/Sarah_Jenkins.png"
-                      alt="Foto Kandidat"
-                      className="detail-talent__avatar-image"
-                    />
+                    {talent.photo ? (
+                      <img
+                        src={talent.photo}
+                        alt="Foto Kandidat"
+                        className="detail-talent__avatar-image"
+                      />
+                    ) : (
+                      <div className="detail-talent__avatar-fallback">
+                        {talent.name.charAt(0)}
+                      </div>
+                    )}
                   </div>
-
                   <div className="detail-talent__avatar-status" />
                 </div>
 
                 <div className="detail-talent__profile-meta">
-                  <div className="detail-talent__profile-name">
-                    Sarah Jenkins
-                  </div>
-                  <div className="detail-talent__profile-role">
-                    Mechanical Engineer
-                  </div>
+                  <div className="detail-talent__profile-name">{talent.name}</div>
+                  <div className="detail-talent__profile-role">{talent.role}</div>
                 </div>
               </div>
 
               <div className="detail-talent__bio-box">
                 <div className="detail-talent__bio-label">Biodata</div>
-                <p className="detail-talent__bio-text">
-                  "Saya adalah insinyur mesin yang berdedikasi dengan pengalaman
-                  lebih dari 4 tahun dalam desain sistem hidrolik dan manajemen
-                  proyek. Saya memiliki semangat tinggi dalam memecahkan masalah
-                  kompleks."
-                </p>
+                <p className="detail-talent__bio-text">"{talent.bio}"</p>
               </div>
 
               <div className="detail-talent__info-list">
-                <InfoLabel title="Jenis Kelamin" value="Perempuan" />
-                <InfoLabel
-                  title="Tempat, Tanggal Lahir"
-                  value="Bandung, 12 Mei 1997"
-                />
-                <InfoLabel title="Email" value="sarah.j@example.com" />
-                <InfoLabel title="No Handphone" value="+62 812 3456 7890" />
-                <InfoLabel
-                  title="Alamat Domisili"
-                  value="Jl. Ir. H. Juanda No. 100, Dago, Bandung, Jawa Barat"
-                />
+                <InfoLabel title="ID Kandidat"          value={id?.toUpperCase()} />
+                <InfoLabel title="Jenis Kelamin"         value={talent.gender} />
+                <InfoLabel title="Tempat, Tanggal Lahir" value={talent.birthplace} />
+                <InfoLabel title="Email"                 value={talent.email} />
+                <InfoLabel title="No Handphone"          value={talent.phone} />
+                <InfoLabel title="Alamat Domisili"       value={talent.address} />
               </div>
 
               <div className="detail-talent__social-section">
                 <div className="detail-talent__social-label">Social Media</div>
                 <div className="detail-talent__social-row">
                   <button className="detail-talent__social-btn">
-                    <Linkedin size={16} />
-                    LinkedIn
+                    <FaLinkedinIn size={16} /> LinkedIn
                   </button>
                   <button className="detail-talent__social-btn">
-                    <Instagram size={16} />
-                    Instagram
+                    <FaInstagram size={16} /> Instagram
                   </button>
                 </div>
               </div>
             </div>
 
+            {/* ===== KOLOM TENGAH — AKADEMIK & ASSESSMENT ===== */}
             <div className="detail-talent__center-column">
               <div className="detail-talent__card">
                 <div className="detail-talent__card-header detail-talent__card-header--with-border">
-                  <GraduationCap
-                    size={22}
-                    className="detail-talent__card-header-icon"
-                  />
+                  <GraduationCap size={22} className="detail-talent__card-header-icon" />
                   <h2 className="detail-talent__card-title">Data Akademik</h2>
                 </div>
 
                 <div className="detail-talent__card-body-top">
-                  <div className="detail-talent__section-heading">
-                    Pendidikan
-                  </div>
+                  <div className="detail-talent__section-heading">Pendidikan</div>
 
                   <div className="detail-talent__education-row">
                     <div className="detail-talent__education-icon">
-                      <GraduationCap
-                        size={16}
-                        className="detail-talent__education-icon-inner"
-                      />
+                      <GraduationCap size={16} className="detail-talent__education-icon-inner" />
                     </div>
-
                     <div>
                       <div className="detail-talent__education-title">
-                        Institut Teknologi Bandung (ITB)
+                        {talent.education.name}
                       </div>
                       <div className="detail-talent__education-subtitle">
-                        Sarjana Teknik Mesin • 2015 - 2019
+                        {talent.education.degree}
                         <br />
-                        IPK 3.65
+                        {talent.education.gpa}
                       </div>
                     </div>
                   </div>
@@ -259,47 +294,41 @@ export default function DetailTalent() {
                   </div>
 
                   <div className="detail-talent__timeline">
-                    <div className="detail-talent__timeline-item">
-                      <span className="detail-talent__timeline-dot detail-talent__timeline-dot--active" />
-                      <div className="detail-talent__timeline-title">
-                        Senior Mechanical Engineer
+                    {talent.experiences.map((exp, i) => (
+                      <div key={i} className="detail-talent__timeline-item">
+                        <span
+                          className={`detail-talent__timeline-dot ${
+                            exp.active
+                              ? "detail-talent__timeline-dot--active"
+                              : "detail-talent__timeline-dot--inactive"
+                          }`}
+                        />
+                        <div className="detail-talent__timeline-title">{exp.title}</div>
+                        <div className="detail-talent__timeline-subtitle">
+                          {exp.company}
+                          <br />
+                          {exp.period}
+                        </div>
                       </div>
-                      <div className="detail-talent__timeline-subtitle">
-                        PT. Industri Maju Jaya
-                        <br />
-                        2021 - Sekarang
-                      </div>
-                    </div>
-
-                    <div className="detail-talent__timeline-item">
-                      <span className="detail-talent__timeline-dot detail-talent__timeline-dot--inactive" />
-                      <div className="detail-talent__timeline-title">
-                        Junior Engineer
-                      </div>
-                      <div className="detail-talent__timeline-subtitle">
-                        CV. Teknik Prima
-                        <br />
-                        2019 - 2021
-                      </div>
-                    </div>
+                    ))}
                   </div>
 
                   <div className="detail-talent__section-heading detail-talent__section-heading--mt">
                     Lisensi & Sertifikasi
                   </div>
                   <div className="detail-talent__chip-row">
-                    <Chip>Certified Solidworks Professional</Chip>
-                    <Chip>Project Management Professional (PMP)</Chip>
+                    {talent.certifications.map((c) => (
+                      <Chip key={c}>{c}</Chip>
+                    ))}
                   </div>
 
                   <div className="detail-talent__section-heading detail-talent__section-heading--mt">
                     Keahlian (Skills)
                   </div>
                   <div className="detail-talent__chip-row">
-                    <Chip blue>AutoCAD</Chip>
-                    <Chip blue>Solid works</Chip>
-                    <Chip blue>MATLAB</Chip>
-                    <Chip>Team Leadership</Chip>
+                    {talent.skills.map((s, i) => (
+                      <Chip key={s} blue={i < 3}>{s}</Chip>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -307,35 +336,26 @@ export default function DetailTalent() {
               <div className="detail-talent__card">
                 <div className="detail-talent__assessment-header">
                   <div className="detail-talent__assessment-icon-box">
-                    <ShieldCheck
-                      size={20}
-                      className="detail-talent__assessment-icon"
-                    />
+                    <ShieldCheck size={20} className="detail-talent__assessment-icon" />
                   </div>
-
                   <div>
                     <div className="detail-talent__assessment-title">
                       Hasil Online Assessment
                     </div>
                     <div className="detail-talent__assessment-subtitle">
-                      Kandidat menyelesaikan tes pada 24 Okt 2023
+                      Kandidat menyelesaikan tes pada {talent.assessmentDate}
                     </div>
                   </div>
                 </div>
 
                 <div className="detail-talent__assessment-summary">
-                  Sarah menunjukkan kemampuan analitis yang sangat kuat,
-                  terutama dalam pemecahan masalah teknis. Ia cenderung
-                  mengambil keputusan berdasarkan data dan fakta. Meskipun sisi
-                  kreatifnya lebih rendah, pendekatannya yang sistematis sangat
-                  cocok untuk peran teknis yang membutuhkan presisi tinggi.
+                  {talent.assessment}
                 </div>
 
                 <div className="detail-talent__assessment-action">
+                  {/* ✅ navigasi dinamis */}
                   <button
-                    onClick={() =>
-                      navigate("/talent/kdt-001/assessment-review")
-                    }
+                    onClick={goToAssessment}
                     className="detail-talent__assessment-btn"
                   >
                     Review Jawaban
@@ -344,15 +364,11 @@ export default function DetailTalent() {
               </div>
             </div>
 
+            {/* ===== KOLOM KANAN — DOKUMEN ===== */}
             <div className="detail-talent__card detail-talent__card--documents">
               <div className="detail-talent__card-header detail-talent__card-header--with-border">
-                <FolderOpen
-                  size={22}
-                  className="detail-talent__card-header-icon"
-                />
-                <h2 className="detail-talent__card-title">
-                  Dokumen Pendukung
-                </h2>
+                <FolderOpen size={22} className="detail-talent__card-header-icon" />
+                <h2 className="detail-talent__card-title">Dokumen Pendukung</h2>
               </div>
 
               <p className="detail-talent__documents-desc">
@@ -361,35 +377,39 @@ export default function DetailTalent() {
 
               <FileItem
                 title="Curriculum Vitae"
-                subtitle="CV - SarahJenkins.pdf"
+                subtitle={talent.documents.cv.name}
                 color="orange"
-                onClick={() => navigate("/talent/kdt-001/review-dokumen")}
+                empty={!talent.documents.cv.filled}
+                onClick={goToReviewDokumen}
               />
               <FileItem
                 title="Portfolio"
-                subtitle="Portfolio-Sarah.pdf"
+                subtitle={talent.documents.portfolio.name}
                 color="blue"
-                onClick={() => navigate("/talent/kdt-001/review-dokumen")}
+                empty={!talent.documents.portfolio.filled}
+                onClick={goToReviewDokumen}
               />
               <FileItem
                 title="KTP / Identitas Diri"
-                subtitle="KTP_3#ficial.pdf"
+                subtitle={talent.documents.ktp.name}
                 color="green"
-                onClick={() => navigate("/talent/kdt-001/review-dokumen")}
+                empty={!talent.documents.ktp.filled}
+                onClick={goToReviewDokumen}
               />
               <FileItem
                 title="Surat Rekomendasi"
-                subtitle="Belum ada file"
+                subtitle={talent.documents.surat.name}
                 color="gray"
-                empty
+                empty={!talent.documents.surat.filled}
               />
               <FileItem
                 title="Transkrip Nilai"
-                subtitle="Belum ada file"
+                subtitle={talent.documents.transkrip.name}
                 color="gray"
-                empty
+                empty={!talent.documents.transkrip.filled}
               />
             </div>
+
           </div>
         </section>
       </main>

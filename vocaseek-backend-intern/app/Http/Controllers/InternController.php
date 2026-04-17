@@ -196,7 +196,7 @@ class InternController extends Controller
             'user_id' => $user->user_id,
             'job_id'  => $request->job_id,
             'motivation' => $request->motivation,
-            'status'  => 'Sedang Diproses'
+            'status'  => 'PENDING'
         ]);
 
         return response()->json(['status' => 'success', 'message' => 'Kamu berhasil mendaftar!']);
