@@ -16,41 +16,13 @@ import {
   History,
   ArrowLeft,
 } from "lucide-react";
-import { getPartnerDetail } from "../../../services/adminVerification";
 import { getApiErrorMessage } from "../../../services/auth";
-
-function buildDocuments(partner) {
-  const docs = [
-    {
-      status: "verified",
-      statusLabel: "Tersimpan",
-      title: "Letter of Acceptance (LoA)",
-      meta: partner?.documents?.loa || "Belum ada file",
-      available: Boolean(partner?.documents?.loa),
-    },
-    {
-      status: "verified",
-      statusLabel: "Tersimpan",
-      title: "Akta Pendirian",
-      meta: partner?.documents?.akta || "Belum ada file",
-      available: Boolean(partner?.documents?.akta),
-    },
-    {
-      status: "review",
-      statusLabel: "Data Perusahaan",
-      title: "Nomor Induk Berusaha",
-      meta: partner?.nib || "Belum ada NIB",
-      available: Boolean(partner?.nib),
-    },
-  ];
-
-  return docs.filter((item) => item.available);
-}
+import api from "../../../lib/api";
 
 export default function PartnerDetail() {
   const navigate = useNavigate();
   const { id } = useParams();
-  const [partner, setPartner] = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -62,10 +34,8 @@ export default function PartnerDetail() {
       setError("");
 
       try {
-        const result = await getPartnerDetail(id);
-        if (isMounted) {
-          setPartner(result);
-        }
+        const res = await api.get(`/admin/partners/${id}`);
+        if (isMounted) setData(res.data?.data ?? null);
       } catch (requestError) {
         if (isMounted) {
           setError(
@@ -76,20 +46,27 @@ export default function PartnerDetail() {
           );
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     loadPartner();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [id]);
 
-  const documents = useMemo(() => buildDocuments(partner), [partner]);
+  const partner    = data?.perusahaan ?? null;
+  const pic        = data?.pic ?? null;
+  const aktivitas  = data?.aktivitas ?? [];
+  const dokumen    = data?.dokumen ?? [];
+
+  const documents = useMemo(() => {
+    return dokumen.map((doc) => ({
+      status: doc.status === "Terverifikasi" ? "verified" : "review",
+      statusLabel: doc.status,
+      title: doc.nama,
+      meta: doc.nama,
+    }));
+  }, [dokumen]);
 
   return (
     <div className="pd-layout">
@@ -115,7 +92,7 @@ export default function PartnerDetail() {
                   className="pd-back-icon"
                   onClick={() => navigate(-1)}
                 />
-                {partner?.name || "Detail Partner"}
+                {loading ? "Memuat..." : partner?.nama_perusahaan || "Detail Partner"}
               </h1>
             </div>
 
@@ -137,24 +114,30 @@ export default function PartnerDetail() {
 
               <div className="pd-company-main">
                 <div className="pd-company-title-row">
-                  <h2>{partner?.name || "Memuat partner..."}</h2>
+                  <h2>{partner?.nama_perusahaan || "Memuat partner..."}</h2>
                   <span className="pd-mou-badge">
-                    {(partner?.status || "pending").toUpperCase()}
+                    {(partner?.status_mitra || "pending").toUpperCase()}
                   </span>
                 </div>
 
                 <div className="pd-company-meta">
                   <div>
                     <span>INDUSTRI</span>
-                    <strong>{partner?.businessType || "-"}</strong>
+                    <strong>{partner?.industri || "-"}</strong>
                   </div>
                   <div>
                     <span>KONTAK</span>
-                    <strong>{partner?.phone || "-"}</strong>
+                    <strong>{pic?.phone || partner?.notelp || "-"}</strong>
                   </div>
                   <div>
                     <span>TGL BERGABUNG</span>
-                    <strong>{partner?.submittedAt || "-"}</strong>
+                    <strong>
+                      {partner?.created_at
+                        ? new Date(partner.created_at).toLocaleDateString("id-ID", {
+                            day: "2-digit", month: "short", year: "numeric",
+                          })
+                        : "-"}
+                    </strong>
                   </div>
                 </div>
               </div>
@@ -173,19 +156,19 @@ export default function PartnerDetail() {
                   <div className="pd-contact-user">
                     <div className="pd-contact-avatar" />
                     <div>
-                      <div className="pd-contact-name">{partner?.name || "-"}</div>
-                      <div className="pd-contact-role">Perusahaan Mitra</div>
+                      <div className="pd-contact-name">{pic?.nama || "-"}</div>
+                      <div className="pd-contact-role">{pic?.jabatan || "Perusahaan Mitra"}</div>
                     </div>
                   </div>
 
                   <div className="pd-contact-info">
                     <div className="pd-contact-item">
                       <Mail size={20} />
-                      <span>{partner?.email || "-"}</span>
+                      <span>{pic?.email || "-"}</span>
                     </div>
                     <div className="pd-contact-item">
                       <Phone size={20} />
-                      <span>{partner?.phone || "-"}</span>
+                      <span>{pic?.phone || "-"}</span>
                     </div>
                   </div>
                 </div>
@@ -203,24 +186,27 @@ export default function PartnerDetail() {
                     <div className="pd-timeline-content">
                       <span>Status saat ini</span>
                       <p>
-                        Partner berada pada status <strong>{partner?.status || "-"}</strong>.
+                        Partner berada pada status{" "}
+                        <strong>{partner?.status_mitra || "-"}</strong>.
                       </p>
                     </div>
                   </div>
 
-                  <div className="pd-timeline-item">
-                    <div className="pd-timeline-dot" />
-                    <div className="pd-timeline-content">
-                      <span>Nomor Induk Berusaha</span>
-                      <p>{partner?.nib || "Belum ada data NIB."}</p>
+                  {aktivitas.map((item, index) => (
+                    <div className="pd-timeline-item" key={index}>
+                      <div className="pd-timeline-dot" />
+                      <div className="pd-timeline-content">
+                        <span>{item.tgl}</span>
+                        <p>{item.pesan}</p>
+                      </div>
                     </div>
-                  </div>
+                  ))}
 
                   <div className="pd-timeline-item">
                     <div className="pd-timeline-dot" />
                     <div className="pd-timeline-content">
-                      <span>Tanggal Pengajuan</span>
-                      <p>{partner?.submittedAt || "Belum tersedia."}</p>
+                      <span>Alamat Kantor</span>
+                      <p>{partner?.alamat_kantor_pusat || "Belum tersedia."}</p>
                     </div>
                   </div>
                 </div>

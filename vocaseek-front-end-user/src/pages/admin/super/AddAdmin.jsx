@@ -14,7 +14,7 @@ import {
 import { getApiErrorMessage } from "../../../services/auth";
 import { createManagedAdminUser } from "../../../services/admin";
 
-function SaveAdminModal({ open, onClose, onConfirm }) {
+function SaveAdminModal({ open, onClose, onConfirm, isSaving }) {
   if (!open) return null;
 
   return (
@@ -34,12 +34,21 @@ function SaveAdminModal({ open, onClose, onConfirm }) {
         </p>
 
         <div className="aa-modal-actions">
-          <button type="button" className="aa-modal-cancel" onClick={onClose}>
+          <button
+            type="button"
+            className="aa-modal-cancel"
+            onClick={onClose}
+            disabled={isSaving}
+          >
             Batal
           </button>
-
-          <button type="button" className="aa-modal-confirm" onClick={onConfirm}>
-            Ya, Tambahkan
+          <button
+            type="button"
+            className="aa-modal-confirm"
+            onClick={onConfirm}
+            disabled={isSaving}
+          >
+            {isSaving ? "Menyimpan..." : "Ya, Tambahkan"}
           </button>
         </div>
       </div>
@@ -63,10 +72,7 @@ export default function AddAdmin() {
   const handleChange = (event) => {
     const { name, value } = event.target;
     setError("");
-    setForm((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
@@ -93,6 +99,9 @@ export default function AddAdmin() {
         password: form.password,
         password_confirmation: form.passwordConfirmation,
       });
+
+      // ✅ Trigger UserManagement untuk refresh realtime
+      window.dispatchEvent(new Event("adminUpdated"));
 
       setOpenModal(false);
       navigate("/admin/user-management");
@@ -139,7 +148,6 @@ export default function AddAdmin() {
             </div>
 
             {/* INFORMASI AKUN */}
-
             <div className="aa-section">
               <div className="aa-section-title">
                 <div className="aa-section-icon blue">
@@ -188,7 +196,6 @@ export default function AddAdmin() {
             </div>
 
             {/* ROLE */}
-
             <div className="aa-section">
               <div className="aa-section-title">
                 <div className="aa-section-icon yellow">
@@ -200,7 +207,6 @@ export default function AddAdmin() {
               <div className="aa-field full">
                 <label>PILIH ROLE / PERAN</label>
                 <input type="text" value="Admin Staff" readOnly />
-
                 <small>
                   Peran menentukan tingkat akses dan izin di dashboard internal.
                 </small>
@@ -208,7 +214,6 @@ export default function AddAdmin() {
             </div>
 
             {/* CREATE PASSWORD */}
-
             <div className="aa-section">
               <div className="aa-section-title">
                 <div className="aa-section-icon green">
@@ -243,11 +248,10 @@ export default function AddAdmin() {
                 </div>
               </div>
 
-              {error ? <p className="aa-form-error">{error}</p> : null}
+              {error && <p className="aa-form-error">{error}</p>}
             </div>
 
             {/* ACTION */}
-
             <div className="aa-actions">
               <button
                 type="button"
@@ -257,7 +261,11 @@ export default function AddAdmin() {
                 Batal
               </button>
 
-              <button type="submit" className="aa-save-btn" disabled={isSaving}>
+              <button
+                type="submit"
+                className="aa-save-btn"
+                disabled={isSaving}
+              >
                 <Save size={16} />
                 <span>{isSaving ? "Menyimpan..." : "Simpan"}</span>
               </button>
@@ -270,8 +278,8 @@ export default function AddAdmin() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onConfirm={handleConfirmSave}
+        isSaving={isSaving}
       />
     </div>
   );
 }
-

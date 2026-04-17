@@ -56,14 +56,23 @@ export async function syncLanguageFromServer() {
     return fallbackLanguage;
   }
 
-  const response = await api.get(LANGUAGE_ENDPOINT);
-  const locale = response?.data?.data?.locale;
-  const normalizedLocale = LANGUAGE_OPTIONS.some((option) => option.code === locale)
-    ? locale
-    : DEFAULT_LANGUAGE;
+  try {
+    const response = await api.get(LANGUAGE_ENDPOINT);
+    const locale = response?.data?.data?.locale;
+    const normalizedLocale = LANGUAGE_OPTIONS.some((option) => option.code === locale)
+      ? locale
+      : DEFAULT_LANGUAGE;
 
-  saveLanguagePreference(normalizedLocale);
-  return normalizedLocale;
+    saveLanguagePreference(normalizedLocale);
+    return normalizedLocale;
+  } catch {
+    // Gunakan bahasa yang sudah aktif di DOM, jangan paksa ganti
+    const currentLang = document.documentElement.lang || getSavedLanguage();
+    const isValid = LANGUAGE_OPTIONS.some((option) => option.code === currentLang);
+    const safeLang = isValid ? currentLang : getSavedLanguage();
+    applyLanguagePreference(safeLang);
+    return safeLang;
+  }
 }
 
 export async function persistLanguagePreference(language) {
@@ -73,15 +82,20 @@ export async function persistLanguagePreference(language) {
     return language;
   }
 
-  const response = await api.put(LANGUAGE_ENDPOINT, {
-    locale: language,
-  });
+  try {
+    const response = await api.put(LANGUAGE_ENDPOINT, {
+      locale: language,
+    });
 
-  const locale = response?.data?.data?.locale;
-  const normalizedLocale = LANGUAGE_OPTIONS.some((option) => option.code === locale)
-    ? locale
-    : language;
+    const locale = response?.data?.data?.locale;
+    const normalizedLocale = LANGUAGE_OPTIONS.some((option) => option.code === locale)
+      ? locale
+      : language;
 
-  saveLanguagePreference(normalizedLocale);
-  return normalizedLocale;
+    saveLanguagePreference(normalizedLocale);
+    return normalizedLocale;
+  } catch {
+    // Jika API gagal, kembalikan bahasa yang dipilih user tanpa mengubah apapun
+    return language;
+  }
 }

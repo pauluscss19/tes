@@ -9,7 +9,11 @@ export function getInternTestQuestions() {
 }
 
 export function updateInternProfile(payload) {
-  return api.put("/intern/update-profile", payload, {
+  if (payload instanceof FormData) {
+    payload.append("_method", "PUT");
+  }
+
+  return api.post("/intern/update-profile", payload, {
     headers: {
       "Content-Type": "multipart/form-data",
     },

@@ -7,7 +7,11 @@ export function getAdminProfile() {
 }
 
 export function updateAdminProfile(payload) {
-  return api.post(`${ADMIN_BASE}/profile/update`, payload);
+  return api.post(`${ADMIN_BASE}/profile/update`, payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
 }
 
 export function changeAdminPassword(payload) {
@@ -73,3 +77,6 @@ export function updateManagedAdminUserStatus(id, payload) {
 export function deleteManagedAdminUser(id) {
   return api.delete(`${ADMIN_BASE}/users-management/${id}`);
 }
+
+export const updateManagedAdminUser = (id, data) =>
+  axiosInstance.put(`/admin/users/${id}`, data);

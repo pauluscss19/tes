@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../../../components/admin/SidebarStaff";
 import Topbar from "../../../components/admin/TopbarStaff";
@@ -15,8 +15,9 @@ import {
   Save,
   CircleHelp,
 } from "lucide-react";
+import api from "../../../lib/api";
 
-function SaveConfirmationModal({ open, onClose, onConfirm }) {
+function SaveConfirmationModal({ open, onClose, onConfirm, loading }) {
   if (!open) return null;
 
   return (
@@ -40,6 +41,7 @@ function SaveConfirmationModal({ open, onClose, onConfirm }) {
             type="button"
             className="ac-modal-cancel"
             onClick={onClose}
+            disabled={loading}
           >
             Tidak
           </button>
@@ -48,8 +50,9 @@ function SaveConfirmationModal({ open, onClose, onConfirm }) {
             type="button"
             className="ac-modal-confirm"
             onClick={onConfirm}
+            disabled={loading}
           >
-            Iya
+            {loading ? "Menyimpan..." : "Iya"}
           </button>
         </div>
       </div>
@@ -59,9 +62,31 @@ function SaveConfirmationModal({ open, onClose, onConfirm }) {
 
 export default function AddCompany() {
   const navigate = useNavigate();
-  const [openModal, setOpenModal] = React.useState(false);
-  const [documents, setDocuments] = React.useState([]);
+  const [openModal, setOpenModal] = useState(false);
+  const [documents, setDocuments] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+
+  // Form state
+  const [form, setForm] = useState({
+    nama_perusahaan: "",
+    industri: "Teknologi Informasi",
+    website: "",
+    deskripsi: "",
+    nama_pic: "",
+    jabatan_pic: "",
+    email: "",
+    notelp: "",
+    alamat_lengkap: "",
+    kota: "",
+    provinsi: "",
+    kode_pos: "",
+  });
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
 
   const handleBack = () => {
     navigate(-1);
@@ -69,12 +94,44 @@ export default function AddCompany() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    setError("");
     setOpenModal(true);
   };
 
-  const handleConfirmSave = () => {
-    setOpenModal(false);
-    navigate("/admin/staff/partners");
+  const handleConfirmSave = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      await api.post("/admin/partners", {
+        nama_perusahaan: form.nama_perusahaan,
+        industri: form.industri,
+        website: form.website ? `https://${form.website}` : "",
+        deskripsi: form.deskripsi,
+        nama_pic: form.nama_pic,
+        jabatan_pic: form.jabatan_pic,
+        email: form.email,
+        notelp: form.notelp,
+        alamat_lengkap: form.alamat_lengkap,
+        kota: form.kota,
+        provinsi: form.provinsi,
+        kode_pos: form.kode_pos,
+      });
+
+      setOpenModal(false);
+      navigate("/admin/staff/partners");
+    } catch (err) {
+      setOpenModal(false);
+      const errData = err?.response?.data;
+      if (errData?.errors) {
+        const messages = Object.values(errData.errors).flat().join(", ");
+        setError(messages);
+      } else {
+        setError(errData?.message || "Gagal menambah perusahaan. Coba lagi.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatFileSize = (bytes) => {
@@ -89,16 +146,13 @@ export default function AddCompany() {
 
   const handleFilesChange = (e) => {
     const files = Array.from(e.target.files || []);
-
     if (!files.length) return;
-
     const mappedFiles = files.map((file, index) => ({
       id: Date.now() + index,
       name: file.name,
       size: file.size,
       file,
     }));
-
     setDocuments((prev) => [...prev, ...mappedFiles]);
     e.target.value = "";
   };
@@ -124,19 +178,29 @@ export default function AddCompany() {
                 <ChevronRight size={14} />
                 <span className="active">TAMBAH MITRA</span>
               </div>
-
               <h1 className="ac-page-title">Tambah Mitra Baru</h1>
             </div>
 
-            <button
-              type="button"
-              className="ac-back-btn"
-              onClick={handleBack}
-            >
+            <button type="button" className="ac-back-btn" onClick={handleBack}>
               <ArrowLeft size={15} />
               <span>Kembali ke Daftar</span>
             </button>
           </div>
+
+          {/* Error message */}
+          {error && (
+            <div style={{
+              background: "#fef2f2",
+              border: "1px solid #fca5a5",
+              color: "#dc2626",
+              padding: "12px 16px",
+              borderRadius: "8px",
+              marginBottom: "16px",
+              fontSize: "14px"
+            }}>
+              {error}
+            </div>
+          )}
 
           <form className="ac-form" onSubmit={handleSubmit}>
             <div className="ac-card">
@@ -146,11 +210,25 @@ export default function AddCompany() {
 
                 <div className="ac-grid-2">
                   <div className="ac-field">
-                    <label>
-                      Industri <span>*</span>
-                    </label>
+                    <label>Nama Perusahaan <span>*</span></label>
+                    <input
+                      type="text"
+                      name="nama_perusahaan"
+                      value={form.nama_perusahaan}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="ac-field">
+                    <label>Industri <span>*</span></label>
                     <div className="ac-select-wrap">
-                      <select defaultValue="Teknologi Informasi">
+                      <select
+                        name="industri"
+                        value={form.industri}
+                        onChange={handleChange}
+                        required
+                      >
                         <option>Teknologi Informasi</option>
                         <option>Retail</option>
                         <option>NGO</option>
@@ -164,14 +242,24 @@ export default function AddCompany() {
                     <label>Website</label>
                     <div className="ac-url-input">
                       <span>https://</span>
-                      <input type="text" />
+                      <input
+                        type="text"
+                        name="website"
+                        value={form.website}
+                        onChange={handleChange}
+                      />
                     </div>
                   </div>
                 </div>
 
                 <div className="ac-field full">
                   <label>Deskripsi Singkat</label>
-                  <textarea rows={4} defaultValue="" />
+                  <textarea
+                    rows={4}
+                    name="deskripsi"
+                    value={form.deskripsi}
+                    onChange={handleChange}
+                  />
                   <small>Maksimal 500 karakter.</small>
                 </div>
               </div>
@@ -186,38 +274,54 @@ export default function AddCompany() {
               <div className="ac-card-body">
                 <div className="ac-grid-2">
                   <div className="ac-field">
-                    <label>
-                      Nama Lengkap PIC <span>*</span>
-                    </label>
-                    <input type="text" />
+                    <label>Nama Lengkap PIC <span>*</span></label>
+                    <input
+                      type="text"
+                      name="nama_pic"
+                      value={form.nama_pic}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
 
                   <div className="ac-field">
-                    <label>
-                      Jabatan <span>*</span>
-                    </label>
-                    <input type="text" />
+                    <label>Jabatan <span>*</span></label>
+                    <input
+                      type="text"
+                      name="jabatan_pic"
+                      value={form.jabatan_pic}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
                 </div>
 
                 <div className="ac-grid-2">
                   <div className="ac-field">
-                    <label>
-                      Alamat Email <span>*</span>
-                    </label>
+                    <label>Alamat Email <span>*</span></label>
                     <div className="ac-icon-input">
                       <Mail size={15} />
-                      <input type="email" />
+                      <input
+                        type="email"
+                        name="email"
+                        value={form.email}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
                   </div>
 
                   <div className="ac-field">
-                    <label>
-                      Nomor Telepon / WhatsApp <span>*</span>
-                    </label>
+                    <label>Nomor Telepon / WhatsApp <span>*</span></label>
                     <div className="ac-icon-input">
                       <Phone size={15} />
-                      <input type="text" />
+                      <input
+                        type="text"
+                        name="notelp"
+                        value={form.notelp}
+                        onChange={handleChange}
+                        required
+                      />
                     </div>
                   </div>
                 </div>
@@ -233,23 +337,47 @@ export default function AddCompany() {
               <div className="ac-card-body">
                 <div className="ac-field full">
                   <label>Alamat Lengkap</label>
-                  <input type="text" />
+                  <input
+                    type="text"
+                    name="alamat_lengkap"
+                    value={form.alamat_lengkap}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
 
                 <div className="ac-grid-3">
                   <div className="ac-field">
                     <label>Kota</label>
-                    <input type="text" />
+                    <input
+                      type="text"
+                      name="kota"
+                      value={form.kota}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
 
                   <div className="ac-field">
                     <label>Provinsi</label>
-                    <input type="text" />
+                    <input
+                      type="text"
+                      name="provinsi"
+                      value={form.provinsi}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
 
                   <div className="ac-field">
                     <label>Kode Pos</label>
-                    <input type="text" />
+                    <input
+                      type="text"
+                      name="kode_pos"
+                      value={form.kode_pos}
+                      onChange={handleChange}
+                      required
+                    />
                   </div>
                 </div>
               </div>
@@ -303,7 +431,6 @@ export default function AddCompany() {
                           <div className="ac-file-icon">
                             <FileText size={18} />
                           </div>
-
                           <div className="ac-file-meta">
                             <strong>{doc.name}</strong>
                             <span>{formatFileSize(doc.size)}</span>
@@ -348,6 +475,7 @@ export default function AddCompany() {
         open={openModal}
         onClose={() => setOpenModal(false)}
         onConfirm={handleConfirmSave}
+        loading={loading}
       />
     </div>
   );

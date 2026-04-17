@@ -86,6 +86,9 @@ class AdminPartnerController extends Controller
      */
     public function store(Request $request)
     {
+           // DEBUG SEMENTARA
+    \Log::info('=== TAMBAH MITRA DEBUG ===');
+    \Log::info('INPUT:', $request->all());
         $validated = $request->validate([
             'nama_perusahaan' => 'required|string',
             'industri' => 'required',

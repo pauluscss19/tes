@@ -19,7 +19,6 @@ import { getAdminProfile, updateAdminProfile } from "../../../services/admin";
 
 function normalizeAdminProfile(payload) {
   const source = payload?.data?.data || payload?.data || payload || {};
-
   return {
     profileImage: source?.foto || source?.photo || "",
     fullName: source?.nama || source?.name || "",
@@ -36,7 +35,6 @@ function syncAdminProfileStorage(profile) {
 
 function SaveProfileModal({ open, onClose, onConfirm, isSaving }) {
   if (!open) return null;
-
   return (
     <div className="ep-modal-overlay" onClick={onClose}>
       <div className="ep-modal" onClick={(e) => e.stopPropagation()}>
@@ -45,14 +43,12 @@ function SaveProfileModal({ open, onClose, onConfirm, isSaving }) {
             <CircleHelp size={28} />
           </div>
         </div>
-
         <h3 className="ep-modal-title">Simpan Perubahan?</h3>
         <p className="ep-modal-text">
           Apakah Anda yakin ingin menyimpan
           <br />
           perubahan profil ini?
         </p>
-
         <div className="ep-modal-actions">
           <button type="button" className="ep-modal-cancel" onClick={onClose}>
             Batal
@@ -77,6 +73,7 @@ export default function EditProfile() {
   const fallbackProfile = JSON.parse(localStorage.getItem("adminProfile")) || {};
 
   const [profileImage, setProfileImage] = React.useState(fallbackProfile.profileImage || "");
+  const [photoFile, setPhotoFile] = React.useState(null);
   const [fullName, setFullName] = React.useState(fallbackProfile.fullName || "");
   const [email, setEmail] = React.useState(fallbackProfile.email || "");
   const [phone, setPhone] = React.useState(fallbackProfile.phone || "");
@@ -98,56 +95,45 @@ export default function EditProfile() {
         setErrorMessage(getApiErrorMessage(error, "Gagal memuat profil admin."));
       }
     };
-
     loadProfile();
   }, []);
 
-  const handleOpenFilePicker = () => {
-    fileInputRef.current?.click();
-  };
+  const handleOpenFilePicker = () => fileInputRef.current?.click();
 
   const handleProfileImageChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     if (!file.type.startsWith("image/")) {
       alert("File harus berupa gambar.");
       return;
     }
-
+    setPhotoFile(file);
     const reader = new FileReader();
-    reader.onloadend = () => {
-      setProfileImage(reader.result);
-    };
+    reader.onloadend = () => setProfileImage(reader.result);
     reader.readAsDataURL(file);
-
     e.target.value = "";
   };
 
   const handleRemoveProfileImage = () => {
     setProfileImage("");
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setPhotoFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleConfirmSave = async () => {
     setIsSaving(true);
     setErrorMessage("");
-
     try {
-      await updateAdminProfile({
-        nama: fullName,
-        notelp: phone,
-      });
+      const formData = new FormData();
+      formData.append("nama", fullName);
+      formData.append("notelp", phone);
+      if (photoFile) {
+        formData.append("foto", photoFile);
+      }
 
-      syncAdminProfileStorage({
-        profileImage,
-        fullName,
-        email,
-        phone,
-      });
+      await updateAdminProfile(formData);
 
+      syncAdminProfileStorage({ profileImage, fullName, email, phone });
       setOpenSaveModal(false);
       navigate("/admin/profil");
     } catch (error) {
@@ -161,10 +147,8 @@ export default function EditProfile() {
   return (
     <div className="ep-layout">
       <Sidebar />
-
       <main className="ep-main">
         <Topbar />
-
         <section className="ep-content">
           <div className="ep-breadcrumb">
             <span>Admin</span>
@@ -202,7 +186,6 @@ export default function EditProfile() {
 
           <div className="ep-card">
             <div className="ep-hero" />
-
             <div className="ep-body">
               <div className="ep-avatar-section">
                 <div className="ep-avatar-wrap">
@@ -213,7 +196,6 @@ export default function EditProfile() {
                     className="ep-file-input"
                     onChange={handleProfileImageChange}
                   />
-
                   {profileImage ? (
                     <img src={profileImage} alt="Profile" className="ep-avatar" />
                   ) : (
@@ -221,7 +203,6 @@ export default function EditProfile() {
                       <User size={46} />
                     </div>
                   )}
-
                   <button
                     type="button"
                     className="ep-camera-btn"
@@ -234,7 +215,6 @@ export default function EditProfile() {
                 <div className="ep-avatar-info">
                   <h2>{fullName || "Super Admin Vokaseek"}</h2>
                   <p>Ubah informasi akun utama administrator.</p>
-
                   {profileImage && (
                     <button
                       type="button"
@@ -295,7 +275,6 @@ export default function EditProfile() {
               >
                 Batal
               </button>
-
               <button
                 type="button"
                 className="ep-save-btn"

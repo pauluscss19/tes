@@ -15,16 +15,15 @@ class User extends Authenticatable
     protected $table = 'users';
     
     // Karena kamu pakai user_id, pastikan ini konsisten di semua tabel relasi
-    protected $primaryKey = 'user_id';
-
+     protected $primaryKey = 'user_id'; // Tambahkan ini
+    
     protected $fillable = [
         'nama',
         'email',
+        'notelp',
+        'foto',      // Pastikan 'foto' ada di fillable!
         'password',
         'role',
-        'notelp',
-        'preferred_locale',
-        'google_id', 
     ];
 
     protected $hidden = [

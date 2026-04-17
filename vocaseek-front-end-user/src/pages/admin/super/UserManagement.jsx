@@ -24,6 +24,7 @@ import {
 } from "../../../services/admin";
 
 const ITEMS_PER_PAGE = 5;
+const POLL_INTERVAL = 30_000; // 30 detik
 
 function extractAdminCollection(payload) {
   if (Array.isArray(payload)) return payload;
@@ -86,14 +87,10 @@ function DeleteAdminModal({ open, onClose, onConfirm }) {
             <CircleHelp size={28} />
           </div>
         </div>
-
-        <h3 className="um-modal-title">Hapus Mitra Perusahaan?</h3>
+        <h3 className="um-modal-title">Hapus Admin?</h3>
         <p className="um-modal-text">
-          Apakah Anda yakin ingin menghapus Mitra
-          <br />
-          dengan Perusahaan ini?
+          Apakah Anda yakin ingin menghapus admin ini?
         </p>
-
         <div className="um-modal-actions">
           <button type="button" className="um-modal-cancel" onClick={onClose}>
             Tidak
@@ -117,25 +114,52 @@ export default function UserManagement() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState("");
 
-  const loadAdmins = React.useCallback(async () => {
-    setIsLoading(true);
+  // ── load data (silent = tidak tampilkan loading spinner) ──────────────────
+  const loadAdmins = React.useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     setErrorMessage("");
 
     try {
       const response = await getManagedAdminUsers();
       setAdmins(extractAdminCollection(response.data).map(mapAdminRow));
     } catch (error) {
-      setAdmins([]);
-      setErrorMessage(getApiErrorMessage(error, "Gagal memuat data admin."));
+      if (!silent) {
+        setAdmins([]);
+        setErrorMessage(getApiErrorMessage(error, "Gagal memuat data admin."));
+      }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
+  // ── load pertama kali ─────────────────────────────────────────────────────
   React.useEffect(() => {
     loadAdmins();
   }, [loadAdmins]);
 
+  // ── polling setiap 30 detik ───────────────────────────────────────────────
+  React.useEffect(() => {
+    const timer = setInterval(() => loadAdmins(true), POLL_INTERVAL);
+    return () => clearInterval(timer);
+  }, [loadAdmins]);
+
+  // ── listen event dari halaman lain (AddAdmin / EditAdmin) ─────────────────
+  React.useEffect(() => {
+    const handleAdminUpdated = () => loadAdmins(true);
+    window.addEventListener("adminUpdated", handleAdminUpdated);
+    return () => window.removeEventListener("adminUpdated", handleAdminUpdated);
+  }, [loadAdmins]);
+
+  // ── listen visibility change (kembali ke tab ini) ─────────────────────────
+  React.useEffect(() => {
+    const handleVisible = () => {
+      if (document.visibilityState === "visible") loadAdmins(true);
+    };
+    document.addEventListener("visibilitychange", handleVisible);
+    return () => document.removeEventListener("visibilitychange", handleVisible);
+  }, [loadAdmins]);
+
+  // ── stats ─────────────────────────────────────────────────────────────────
   const stats = React.useMemo(() => [
     {
       title: "Total Admin",
@@ -145,13 +169,13 @@ export default function UserManagement() {
     },
     {
       title: "Super Admin",
-      value: String(admins.filter((admin) => admin.roleClass === "super").length),
+      value: String(admins.filter((a) => a.roleClass === "super").length),
       icon: <ShieldCheck size={22} strokeWidth={2.2} />,
       iconClass: "um-stat-icon purple",
     },
     {
       title: "Staff Admin",
-      value: String(admins.filter((admin) => admin.roleClass === "staff").length),
+      value: String(admins.filter((a) => a.roleClass === "staff").length),
       icon: <UserSearch size={22} strokeWidth={2.2} />,
       iconClass: "um-stat-icon green",
     },
@@ -173,7 +197,7 @@ export default function UserManagement() {
   );
 
   React.useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
+    setCurrentPage((prev) => Math.min(prev, Math.max(totalPages, 1)));
   }, [totalPages]);
 
   const openDeleteModal = (id) => {
@@ -188,7 +212,6 @@ export default function UserManagement() {
 
   const handleDeleteAdmin = async () => {
     if (!selectedAdminId) return;
-
     try {
       await deleteManagedAdminUser(selectedAdminId);
       setAdmins((prev) => prev.filter((item) => item.id !== selectedAdminId));
@@ -221,7 +244,6 @@ export default function UserManagement() {
             {stats.map((item, index) => (
               <div className="um-stat-card" key={index}>
                 <div className={item.iconClass}>{item.icon}</div>
-
                 <div className="um-stat-content">
                   <p>{item.title}</p>
                   <h3>{item.value}</h3>
@@ -233,7 +255,6 @@ export default function UserManagement() {
           <div className="um-table-card">
             <div className="um-table-header">
               <h2>Daftar Admin Internal</h2>
-
               <button
                 className="um-add-btn"
                 type="button"
@@ -261,41 +282,37 @@ export default function UserManagement() {
                       <td>
                         <div className="um-user-cell">
                           <div className={`um-avatar ${admin.avatarClass}`} />
-
                           <div className="um-user-text">
                             <h4>{admin.name}</h4>
                             <p>{admin.email}</p>
                           </div>
                         </div>
                       </td>
-
                       <td>
                         <span className={`um-role-badge ${admin.roleClass}`}>
                           {admin.role}
                         </span>
                       </td>
-
                       <td>
                         <span className={`um-status ${admin.statusClass}`}>
                           <span className="um-status-dot" />
                           {admin.status}
                         </span>
                       </td>
-
                       <td>
                         <div className="um-actions">
                           <button
                             type="button"
                             className="um-icon-btn"
                             onClick={() =>
-                              navigate(`/admin/user-management/edit-admin/${admin.id}`, {
-                                state: admin,
-                              })
+                              navigate(
+                                `/admin/user-management/edit-admin/${admin.id}`,
+                                { state: admin }
+                              )
                             }
                           >
                             <Pencil size={15} strokeWidth={2.2} />
                           </button>
-
                           <button
                             type="button"
                             className="um-icon-btn"
@@ -329,46 +346,56 @@ export default function UserManagement() {
 
             <div className="um-table-footer">
               <p>
-                Menampilkan {paginationMeta.start} sampai {paginationMeta.end} dari {admins.length} hasil
+                Menampilkan {paginationMeta.start} sampai {paginationMeta.end} dari{" "}
+                {admins.length} hasil
               </p>
 
               {admins.length > 0 && (
-              <div className="um-pagination">
-                <button
-                  className="um-page-btn muted"
-                  type="button"
-                  disabled={paginationMeta.currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                >
-                  Previous
-                </button>
-                {pageNumbers.map((pageNumber, index) =>
-                  pageNumber === "ellipsis" ? (
-                    <button key={`ellipsis-${index}`} className="um-page-btn muted" type="button" disabled>
-                      ...
-                    </button>
-                  ) : (
-                    <button
-                      key={pageNumber}
-                      className={`um-page-btn ${pageNumber === paginationMeta.currentPage ? "active" : "muted"}`}
-                      type="button"
-                      onClick={() => setCurrentPage(pageNumber)}
-                    >
-                      {pageNumber}
-                    </button>
-                  )
-                )}
-                <button
-                  className="um-page-btn active"
-                  type="button"
-                  disabled={paginationMeta.currentPage === paginationMeta.totalPages}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, paginationMeta.totalPages))
-                  }
-                >
-                  Next
-                </button>
-              </div>
+                <div className="um-pagination">
+                  <button
+                    className="um-page-btn muted"
+                    type="button"
+                    disabled={paginationMeta.currentPage === 1}
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  >
+                    Previous
+                  </button>
+
+                  {pageNumbers.map((pageNumber, index) =>
+                    pageNumber === "ellipsis" ? (
+                      <button
+                        key={`ellipsis-${index}`}
+                        className="um-page-btn muted"
+                        type="button"
+                        disabled
+                      >
+                        ...
+                      </button>
+                    ) : (
+                      <button
+                        key={pageNumber}
+                        className={`um-page-btn ${pageNumber === paginationMeta.currentPage ? "active" : "muted"}`}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNumber)}
+                      >
+                        {pageNumber}
+                      </button>
+                    )
+                  )}
+
+                  <button
+                    className="um-page-btn active"
+                    type="button"
+                    disabled={paginationMeta.currentPage === paginationMeta.totalPages}
+                    onClick={() =>
+                      setCurrentPage((prev) =>
+                        Math.min(prev + 1, paginationMeta.totalPages)
+                      )
+                    }
+                  >
+                    Next
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -383,4 +410,3 @@ export default function UserManagement() {
     </div>
   );
 }
-

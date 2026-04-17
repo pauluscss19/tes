@@ -77,6 +77,7 @@ export default function EditProfileStaff() {
   const fallbackProfile = JSON.parse(localStorage.getItem("adminProfile")) || {};
 
   const [profileImage, setProfileImage] = React.useState(fallbackProfile.profileImage || "");
+  const [selectedFile, setSelectedFile] = React.useState(null); // ← file asli untuk upload
   const [fullName, setFullName] = React.useState(fallbackProfile.fullName || "");
   const [email, setEmail] = React.useState(fallbackProfile.email || "");
   const [phone, setPhone] = React.useState(fallbackProfile.phone || "");
@@ -115,6 +116,10 @@ export default function EditProfileStaff() {
       return;
     }
 
+    // Simpan file asli untuk dikirim ke API
+    setSelectedFile(file);
+
+    // Tampilkan preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setProfileImage(reader.result);
@@ -126,6 +131,7 @@ export default function EditProfileStaff() {
 
   const handleRemoveProfileImage = () => {
     setProfileImage("");
+    setSelectedFile(null); // ← reset file asli
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -136,13 +142,21 @@ export default function EditProfileStaff() {
     setErrorMessage("");
 
     try {
-      await updateAdminProfile({
-        nama: fullName,
-        notelp: phone,
-      });
+      // Kirim sebagai FormData agar foto ikut terkirim
+      const formData = new FormData();
+      formData.append("nama", fullName);
+      formData.append("notelp", phone);
+      if (selectedFile) {
+        formData.append("foto", selectedFile);
+      }
+
+      const response = await updateAdminProfile(formData);
+
+      // Ambil URL foto terbaru dari response API
+      const newFoto = response?.data?.data?.foto;
 
       syncAdminProfileStorage({
-        profileImage,
+        profileImage: newFoto || profileImage,
         fullName,
         email,
         phone,
