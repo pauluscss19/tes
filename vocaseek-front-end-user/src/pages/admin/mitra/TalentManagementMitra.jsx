@@ -94,16 +94,26 @@ function normalizeCandidateStatus(value) {
 }
 
 function mapCandidate(item, index) {
+  console.log("item.id:", item?.id);
+  console.log("item.application_id:", item?.application_id);
+  console.log("item.candidate_id:", item?.candidate_id);
+  console.log("FULL ITEM:", JSON.stringify(item));
+  console.log("RAW ITEM:", item);
   const user = item?.user || item?.intern || item?.candidate || {};
   const profile = user?.intern_profile || user?.internProfile || item?.intern_profile || {};
   const name = user?.nama || item?.nama || item?.name || "Kandidat";
   const status = normalizeCandidateStatus(item?.status || item?.candidate_status);
-  const id = item?.id || item?.candidate_id || item?.application_id || user?.user_id || index + 1;
+
+  // ✅ rawId = integer asli dari backend (untuk URL dan API call)
+  const rawId = item?.id ?? item?.application_id ?? user?.user_id ?? (index + 1);
+
+  // ✅ displayId = format KDT-022 hanya untuk tampilan di tabel
+  const displayId = `KDT-${String(rawId).padStart(3, "0")}`;
 
   return {
     raw: item,
-    backendId: item?.id || item?.candidate_id || item?.application_id || id,
-    id: `KDT-${String(id).padStart(3, "0")}`,
+    backendId: item?.id ?? item?.application_id ?? rawId,
+    id: displayId,          // ← hanya untuk tampilan di kolom ID
     name,
     email: user?.email || item?.email || "Email belum tersedia",
     role:
@@ -117,7 +127,7 @@ function mapCandidate(item, index) {
     applyDate: formatDate(item?.created_at || item?.apply_date || item?.tanggal_daftar),
     status,
     image: profile?.foto || user?.foto || item?.foto || "/default-avatar.png",
-    link: `/admin/mitra/talent/${id}`,
+    link: `/admin/mitra/talent/${rawId}`,  // ✅ pakai rawId integer
     selected: false,
   };
 }

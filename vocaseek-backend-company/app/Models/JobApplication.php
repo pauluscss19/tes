@@ -10,7 +10,7 @@ class JobApplication extends Model
     use HasFactory;
 
     protected $table = 'job_applications';
-    protected $primaryKey = 'application_id'; // ✅ primary key sesuai DB
+    protected $primaryKey = 'application_id';
 
     protected $fillable = [
         'user_id',

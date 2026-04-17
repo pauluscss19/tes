@@ -388,7 +388,7 @@ export default function TalentManagement({ mode = "all" }) {
 
   // ── Detail — gunakan item.id (integer) ────────────────────────────────────
   const handleViewDetail = (item) => {
-    const handleViewDetail = (item) => {
+  console.log("ID yang dikirim:", item.id, item.displayId);
   navigate(`/talent/${item.id}/detail`);
 };
   };

@@ -3,12 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, SlidersHorizontal, ChevronDown } from "lucide-react";
 import "../../styles/admin/ApplicantsTableMitra.css";
 
-export default function ApplicantsTable() {
+export default function ApplicantsTable({ applicants = [], isLoading = false }) {
   const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = React.useState(false);
   const [statusFilter, setStatusFilter] = React.useState("all");
-
-  const data = [];
 
   const STATUS_OPTIONS = [
     { value: "all", label: "Semua Status" },
@@ -17,9 +15,9 @@ export default function ApplicantsTable() {
     { value: "REJECTED", label: "Rejected" },
   ];
 
-  const filteredData = data.filter((item) => {
-    return statusFilter === "all" ? true : item.status === statusFilter;
-  });
+  const filteredData = applicants.filter((item) =>
+    statusFilter === "all" ? true : item.status === statusFilter
+  );
 
   const statusClass = (status) => {
     if (status === "PENDING") return "status-badge pending";
@@ -29,9 +27,7 @@ export default function ApplicantsTable() {
   };
 
   const handleRowClick = (item) => {
-    if (item.link) {
-      navigate(item.link);
-    }
+    navigate(`/admin/mitra/talent/${item.application_id}`);
   };
 
   return (
@@ -86,7 +82,6 @@ export default function ApplicantsTable() {
                   >
                     Reset
                   </button>
-
                   <button
                     type="button"
                     className="applicants-table__filter-apply"
@@ -102,12 +97,14 @@ export default function ApplicantsTable() {
           <button
             type="button"
             className="applicants-table__btn applicants-table__btn--soft"
+            onClick={() => navigate("/admin/mitra/talent/semua-kandidat")}
           >
             See All
           </button>
         </div>
       </div>
 
+      {/* DESKTOP */}
       <div className="applicants-table__desktop">
         <table className="applicants-table__table">
           <thead>
@@ -122,14 +119,20 @@ export default function ApplicantsTable() {
           </thead>
 
           <tbody>
-            {filteredData.length > 0 ? (
+            {isLoading ? (
+              <tr>
+                <td colSpan={6} className="muted" style={{ textAlign: "center", padding: "32px 16px" }}>
+                  Memuat data...
+                </td>
+              </tr>
+            ) : filteredData.length > 0 ? (
               filteredData.map((item) => (
                 <tr
-                  key={item.id}
+                  key={item.application_id}
                   onClick={() => handleRowClick(item)}
-                  className={item.link ? "is-clickable" : ""}
+                  className="is-clickable"
                 >
-                  <td className="muted">{item.id}</td>
+                  <td className="muted">APP-{String(item.application_id).padStart(3, "0")}</td>
                   <td className="semi-bold">{item.name}</td>
                   <td>{item.position}</td>
                   <td className="muted">{item.date}</td>
@@ -154,20 +157,24 @@ export default function ApplicantsTable() {
         </table>
       </div>
 
+      {/* MOBILE */}
       <div className="applicants-table__mobile">
-        {filteredData.length > 0 ? (
+        {isLoading ? (
+          <div className="applicant-card">
+            <p className="value muted">Memuat data...</p>
+          </div>
+        ) : filteredData.length > 0 ? (
           filteredData.map((item) => (
             <div
-              key={item.id}
-              className={`applicant-card ${item.link ? "is-clickable" : ""}`}
+              key={item.application_id}
+              className="applicant-card is-clickable"
               onClick={() => handleRowClick(item)}
             >
               <div className="applicant-card__top">
                 <div>
-                  <p className="applicant-card__id">{item.id}</p>
+                  <p className="applicant-card__id">APP-{String(item.application_id).padStart(3, "0")}</p>
                   <h3 className="applicant-card__name">{item.name}</h3>
                 </div>
-
                 <button type="button" className="applicants-table__icon-btn">
                   <ChevronRight size={18} />
                 </button>
@@ -178,12 +185,10 @@ export default function ApplicantsTable() {
                   <span className="label">Position</span>
                   <span className="value">{item.position}</span>
                 </div>
-
                 <div className="applicant-card__row">
                   <span className="label">Applied Date</span>
                   <span className="value muted">{item.date}</span>
                 </div>
-
                 <div className="applicant-card__row">
                   <span className="label">Status</span>
                   <span className={statusClass(item.status)}>{item.status}</span>
