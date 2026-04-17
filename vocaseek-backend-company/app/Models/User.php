@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Models;
+use App\Models\TestAnswer;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -52,7 +53,10 @@ class User extends Authenticatable
         // Parameter: (Model, Foreign Key di tabel tujuan, Local Key di tabel users)
         return $this->hasOne(InternProfile::class, 'user_id', 'user_id');
     }
-
+public function testAnswers()
+{
+    return $this->hasMany(TestAnswer::class, 'user_id', 'user_id');
+}
     /**
      * Relasi ke profil Company (Penting untuk Dashboard Mitra)
      */

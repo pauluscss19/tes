@@ -246,7 +246,7 @@ export default function App() {
         <Route path="/admin/mitra/lowongan" element={<ProtectedRoute allowedRoles={["company"]}><JobPostings /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/tambah" element={<ProtectedRoute allowedRoles={["company"]}><CreateJob /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/pratinjau" element={<ProtectedRoute allowedRoles={["company"]}><CreateJobPreview /></ProtectedRoute>} />
-        <Route path="/admin/mitra/lowongan/applicants" element={<ProtectedRoute allowedRoles={["company"]}><JobApplicants /></ProtectedRoute>} />
+       <Route path="/admin/mitra/lowongan/:jobId/pelamar" element={<ProtectedRoute allowedRoles={["company"]}><JobApplicants /></ProtectedRoute>} />
         <Route path="/admin/mitra/company-profile" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfile /></ProtectedRoute>} />
         <Route path="/admin/mitra/company-profile/settings" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfileSettings /></ProtectedRoute>} />
         <Route path="/admin/mitra/talent" element={<ProtectedRoute allowedRoles={["company"]}><Navigate to="/admin/mitra/talent/semua-kandidat" replace /></ProtectedRoute>} />

@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
+use App\Models\TestAnswer;
 
 class User extends Authenticatable
 {
@@ -65,6 +66,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(JobApplication::class, 'user_id', 'user_id');
     }
+
+    public function testAnswers()
+{
+    return $this->hasMany(TestAnswer::class, 'user_id', 'user_id');
+}
 
     public function sendPasswordResetNotification($token): void
     {

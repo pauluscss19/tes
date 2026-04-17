@@ -128,17 +128,61 @@ class CompanyController extends Controller
     // ==========================================
 
     public function getApplicantsByJob($jobId)
-    {
-        $company = $this->getMyCompany();
-        $job = Lowongan::where('id', $jobId)->where('company_profile_id', $company->id)->firstOrFail();
-        
-        $applicants = JobApplication::with(['user.internProfile'])
-            ->where('job_id', $jobId)
-            ->latest()
-            ->get();
+{
+    $company = $this->getMyCompany();
+    $job = Lowongan::where('id', $jobId)
+                   ->where('company_profile_id', $company->id)
+                   ->firstOrFail();
 
-        return response()->json(['status' => 'success', 'job' => $job->judul_posisi, 'applicants' => $applicants]);
-    }
+    $applicants = JobApplication::with([
+            'user.internProfile',
+            'user.testAnswers'  // ← tambah ini
+        ])
+        ->where('job_id', $jobId)
+        ->latest()
+        ->get()
+        ->map(fn($app) => [
+            // Lamaran
+            'application_id'  => $app->id,
+            'status'          => $app->status,
+            'motivation'      => $app->motivation,
+            'applied_at'      => $app->created_at->format('d M Y'),
+
+            // Biodata
+            'nama'            => $app->user->nama ?? null,
+            'email'           => $app->user->email ?? null,
+            'foto'            => $app->user->internProfile->foto
+                                    ? asset('storage/' . $app->user->internProfile->foto)
+                                    : null,
+
+            // Akademik
+            'universitas'     => $app->user->internProfile->universitas ?? null,
+            'jurusan'         => $app->user->internProfile->jurusan ?? null,
+            'ipk'             => $app->user->internProfile->ipk ?? null,
+            'jenjang'         => $app->user->internProfile->jenjang ?? null,
+            'tahun_masuk'     => $app->user->internProfile->tahun_masuk ?? null,
+            'tahun_lulus'     => $app->user->internProfile->tahun_lulus ?? null,
+
+            // Dokumen
+            'cv_url'          => $app->user->internProfile->cv_pdf
+                                    ? asset('storage/' . $app->user->internProfile->cv_pdf)
+                                    : null,
+            'portofolio_url'  => $app->user->internProfile->portofolio_pdf
+                                    ? asset('storage/' . $app->user->internProfile->portofolio_pdf)
+                                    : null,
+
+            // Hasil Asesmen
+            'pretest_score'   => $app->user->internProfile->pretest_score ?? null,
+            'test_finished_at'=> $app->user->internProfile->test_finished_at ?? null,
+            'jawaban_tes'     => $app->user->testAnswers ?? [],
+        ]);
+
+    return response()->json([
+        'status'     => 'success',
+        'job'        => $job->judul_posisi,
+        'applicants' => $applicants
+    ]);
+}
 
     public function updateApplicationStatus(Request $request, $id)
     {
