@@ -27,12 +27,12 @@ export default function App() {
         <Route path="/company-profile/settings" element={<CompanyProfileSettings />}/>
 
         <Route path="/talent" element={<Navigate to="/talent/semua-kandidat" replace />} />
-        <Route path="/tambah-kandidat" element={<TambahKandidat />} />
-        <Route path="/talent/semua-kandidat" element={<TalentManagement mode="all" />} />
-        <Route path="/talent/kandidat-terpilih" element={<TalentManagement mode="shortlisted" />} />
-        <Route path="/talent/kdt-001" element={<DetailTalent />} />
-        <Route path="/talent/kdt-001/review-dokumen" element={<ReviewDokumen />} />
-        <Route path="/talent/kdt-001/assessment-review" element={<AssessmentReview />} />
+<Route path="/tambah-kandidat"              element={<TambahKandidat />} />
+<Route path="/talent/semua-kandidat"        element={<TalentManagement mode="all" />} />
+<Route path="/talent/kandidat-terpilih"     element={<TalentManagement mode="shortlisted" />} />
+<Route path="/talent/:id/detail"            element={<DetailTalent />} />
+<Route path="/talent/:id/review-dokumen"    element={<ReviewDokumen />} />
+<Route path="/talent/:id/assessment-review" element={<AssessmentReview />} />
       </Routes>
     </BrowserRouter>
   );
