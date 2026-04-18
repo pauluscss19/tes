@@ -7,35 +7,37 @@ use App\Models\InternProfile;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Laravel\Socialite\Facades\Socialite;
+use GuzzleHttp\Client;
 
 class GoogleAuthController extends Controller
 {
-    // Frontend kirim access_token Google → kita verifikasi → return Sanctum token
     public function handleTokenLogin(Request $request)
     {
-         $request->validate([
-        'access_token' => 'required|string',
-    ]);
+        $request->validate([
+            'access_token' => 'required|string',
+        ]);
 
-    try {
-        $googleUser = Socialite::driver('google')
-            ->stateless()
-            ->userFromToken($request->access_token);
+        try {
+            // ✅ FIX: bypass SSL untuk localhost Windows
+            $http = new Client(['verify' => false]);
 
-    } catch (\Exception $e) {
-        // Tambah ini sementara untuk debug
-        return response()->json([
-            'message' => 'Token Google tidak valid.',
-            'debug'   => $e->getMessage(), // ← lihat error aslinya
-        ], 401);
-    }
-        // Cari user berdasarkan google_id atau email
+            $googleUser = Socialite::driver('google')
+                ->stateless()
+                ->setHttpClient($http)
+                ->userFromToken($request->access_token);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Token Google tidak valid.',
+                'debug'   => $e->getMessage(),
+            ], 401);
+        }
+
         $user = User::where('google_id', $googleUser->getId())
             ->orWhere('email', $googleUser->getEmail())
             ->first();
 
         if (!$user) {
-            // Auto-register jika belum ada akun
             $user = User::create([
                 'nama'      => $googleUser->getName(),
                 'email'     => $googleUser->getEmail(),
@@ -50,7 +52,6 @@ class GoogleAuthController extends Controller
                 'is_profile_complete' => false,
             ]);
         } else {
-            // Update google_id jika belum ada (login pakai email biasa sebelumnya)
             if (!$user->google_id) {
                 $user->update(['google_id' => $googleUser->getId()]);
             }
