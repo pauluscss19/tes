@@ -1,5 +1,6 @@
 <?php
-
+header('Cross-Origin-Opener-Policy: same-origin-allow-popups');
+header('Cross-Origin-Embedder-Policy: unsafe-none');
 use Illuminate\Foundation\Application;
 use Illuminate\Http\Request;
 

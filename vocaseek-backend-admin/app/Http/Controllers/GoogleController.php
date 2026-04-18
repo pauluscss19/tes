@@ -35,7 +35,7 @@ class GoogleController extends Controller
                 ->redirectUrl($this->getGoogleRedirectUrl())
                 ->stateless()
                 ->user();
-            
+
             $user = $this->findOrCreateGoogleUser($googleUser);
             Auth::login($user);
             request()->session()->regenerate();
@@ -64,30 +64,65 @@ class GoogleController extends Controller
         ]);
 
         try {
-            $googleUser = Socialite::driver('google')->userFromToken($request->access_token);
-            $user = $this->findOrCreateGoogleUser($googleUser);
+            $context = stream_context_create([
+                'http' => [
+                    'method'  => 'GET',
+                    'header'  => "Authorization: Bearer {$request->access_token}\r\n" .
+                                 "Accept: application/json\r\n",
+                    'timeout' => 10,
+                ],
+                'ssl' => [
+                    'verify_peer'      => false,
+                    'verify_peer_name' => false,
+                ],
+            ]);
+
+            $raw = @file_get_contents(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                false,
+                $context
+            );
+
+            if (!$raw) {
+                throw new \Exception('Tidak bisa konek ke Google API.');
+            }
+
+            $googleData = json_decode($raw, true);
+
+            if (empty($googleData['sub'])) {
+                throw new \Exception('Token Google tidak valid: ' . json_encode($googleData));
+            }
+
+            $googleUser = new class($googleData) {
+                public function __construct(private array $data) {}
+                public function getName()  { return $this->data['name']  ?? ''; }
+                public function getEmail() { return $this->data['email'] ?? ''; }
+                public function getId()    { return $this->data['sub']   ?? ''; }
+            };
+
+            $user  = $this->findOrCreateGoogleUser($googleUser);
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
-                'status' => 'success',
+                'status'  => 'success',
                 'message' => 'Login Google berhasil.',
-                'token' => $token,
-                'role' => $user->role,
-                'user' => [
-                    'user_id' => $user->user_id,
-                    'nama' => $user->nama,
-                    'email' => $user->email,
+                'token'   => $token,
+                'role'    => $user->role,
+                'user'    => [
+                    'user_id'   => $user->user_id,
+                    'nama'      => $user->nama,
+                    'email'     => $user->email,
                     'google_id' => $user->google_id,
                 ],
             ]);
+
         } catch (\Throwable $e) {
-            Log::error('Google token login failed.', [
-                'message' => $e->getMessage(),
-            ]);
+            Log::error('Google token login failed.', ['message' => $e->getMessage()]);
 
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Google token tidak valid atau login Google gagal.',
+                'debug'   => $e->getMessage(),
             ], 401);
         }
     }
@@ -105,16 +140,16 @@ class GoogleController extends Controller
 
             if (!$user) {
                 $user = User::create([
-                    'nama' => $googleUser->getName(),
-                    'email' => $googleUser->getEmail(),
+                    'nama'      => $googleUser->getName(),
+                    'email'     => $googleUser->getEmail(),
                     'google_id' => $googleUser->getId(),
-                    'role' => 'intern',
-                    'password' => bcrypt(Str::random(16)),
-                    'notelp' => '-',
+                    'role'      => 'intern',
+                    'password'  => bcrypt(Str::random(16)),
+                    'notelp'    => '-',
                 ]);
 
                 InternProfile::create([
-                    'user_id' => $user->user_id,
+                    'user_id'             => $user->user_id,
                     'is_profile_complete' => false,
                 ]);
             } elseif (!$user->google_id) {
