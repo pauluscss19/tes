@@ -25,6 +25,7 @@ class User extends Authenticatable
         'foto',      // Pastikan 'foto' ada di fillable!
         'password',
         'role',
+        'google_id',
     ];
 
     protected $hidden = [

@@ -3,7 +3,10 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InternController;
+use App\Http\Controllers\GoogleAuthController;
 
+// Google OAuth — public (tanpa auth)
+Route::post('/auth/google/token', [GoogleAuthController::class, 'handleTokenLogin']);
 // 1. Route Publik (Tanpa Login)
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);

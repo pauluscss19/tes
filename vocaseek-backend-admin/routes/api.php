@@ -20,12 +20,14 @@ use App\Http\Controllers\Auth\AdminPartnerController;
 use App\Http\Controllers\Auth\AdminUserController;
 use App\Http\Controllers\Auth\AdminVerificationController;
 use App\Http\Controllers\Auth\AdminProfileController;
+use App\Http\Controllers\GoogleAuthController;
 
 
 // ==========================================
 // PUBLIC ROUTES
 // ==========================================
 
+Route::post('/auth/google/token', [GoogleAuthController::class, 'handleTokenLogin']);
 Route::get('/landing-stats', [CompanyController::class, 'getPublicStats']);
 Route::get('/popular-vacancies', [CompanyController::class, 'getPublicJobs']);
 Route::get('/partners', [CompanyController::class, 'getPublicPartners']);

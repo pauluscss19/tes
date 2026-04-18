@@ -14,9 +14,6 @@ use Illuminate\Support\Str;
 
 class TalentController extends Controller
 {
-    /**
-     * SEMUA KANDIDAT (Gambar 1 & 2)
-     */
     public function getAllCandidates(Request $request)
     {
         $company = $request->user()->companyProfile;
@@ -26,12 +23,12 @@ class TalentController extends Controller
         }
 
         $query = JobApplication::with(['user.internProfile', 'lowongan'])
-            ->whereHas('lowongan', function($q) use ($company) {
+            ->whereHas('lowongan', function ($q) use ($company) {
                 $q->where('company_profile_id', $company->id);
             });
 
         if ($request->has('search')) {
-            $query->whereHas('user', function($q) use ($request) {
+            $query->whereHas('user', function ($q) use ($request) {
                 $q->where('nama', 'like', '%' . $request->search . '%');
             });
         }
@@ -39,127 +36,162 @@ class TalentController extends Controller
         $applications = $query->latest()->get();
 
         $stats = [
-            'total_shortlisted' => $applications->where('status', 'SHORTLISTED')->count(),
-            'total_interviews'  => $applications->where('status', 'INTERVIEW')->count(),
+            'total_shortlisted'   => $applications->where('status', 'SHORTLISTED')->count(),
+            'total_interviews'    => $applications->where('status', 'INTERVIEW')->count(),
             'accepted_this_month' => $applications->where('status', 'OFFER')
-                                    ->where('updated_at', '>=', now()->startOfMonth())->count(),
+                ->where('updated_at', '>=', now()->startOfMonth())->count(),
         ];
 
         $tableData = $applications->map(fn($app) => [
-            'id' => $app->id,
+            'id'           => $app->id,
             'candidate_id' => 'KDT-' . str_pad($app->user_id, 3, '0', STR_PAD_LEFT),
-            'name' => $app->user->nama ?? 'N/A',
-            'email' => $app->user->email ?? '-',
-            'position' => $app->lowongan->judul_pekerjaan ?? 'N/A',
-            'type' => $app->lowongan->tipe_pekerjaan ?? 'Internship',
+            'name'         => $app->user->nama          ?? 'N/A',
+            'email'        => $app->user->email         ?? '-',
+            'position'     => $app->lowongan->judul_posisi   ?? $app->lowongan->judul_pekerjaan ?? 'N/A',
+            'type'         => $app->lowongan->tipe_magang    ?? $app->lowongan->tipe_pekerjaan  ?? 'Internship',
             'date_applied' => $app->created_at->format('d M Y'),
-            'status' => $app->status,
+            'status'       => $app->status,
         ]);
 
         return response()->json([
-            'status' => 'success', 
-            'stats' => $stats, 
-            'candidates' => $tableData
+            'status'     => 'success',
+            'stats'      => $stats,
+            'candidates' => $tableData,
         ]);
     }
 
-    /**
-     * DETAIL PROFIL LENGKAP (Gambar 4 & 5)
-     * Fungsi baru untuk melihat CV, Portofolio, dan IPK Sarah Jenkins dkk.
-     */
     public function getCandidateDetail($id)
     {
-        // $id adalah ID lamaran
         $application = JobApplication::with([
-            'user.internProfile', 
-            'lowongan'
+            'user.internProfile',
+            'lowongan',
         ])->findOrFail($id);
 
-        $user = $application->user;
+        $user    = $application->user;
         $profile = $user->internProfile;
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                // Bagian Kiri UI: Data Pribadi (Gambar 4)
+            'data'   => [
+
                 'personal' => [
-                    'name' => $user->nama,
-                    'role' => $profile->posisi_sekarang ?? 'Candidate',
-                    'biodata' => $profile->biodata ?? 'Belum ada biodata.',
-                    'gender' => $profile->jenis_kelamin ?? '-',
-                    'birth' => ($profile->tempat_lahir ?? '-') . ', ' . ($profile->tgl_lahir ?? '-'),
-                    'email' => $user->email,
-                    'phone' => $user->notelp,
-                    'address' => $profile->alamat ?? '-',
+                    'name'    => $user->nama ?? '-',
+                    'role'    => $application->lowongan->judul_posisi
+                                 ?? $application->lowongan->judul_pekerjaan
+                                 ?? 'Candidate',
+                    // ✅ FIX: tentang_saya bukan biodata
+                    'biodata' => $profile->tentang_saya   ?? 'Belum ada biodata.',
+                    'gender'  => $profile->jenis_kelamin  ?? '-',
+                    // ✅ FIX: tanggal_lahir bukan tgl_lahir
+                    'birth'   => ($profile->tempat_lahir  ?? '-') . ', '
+                                 . ($profile->tanggal_lahir ?? '-'),
+                    'email'   => $user->email             ?? '-',
+                    // ✅ FIX: notelp dari profile, fallback ke user
+                    'phone'   => $profile->notelp         ?? $user->notelp ?? '-',
+                    // ✅ FIX: gabungkan detail_alamat + kabupaten + provinsi
+                    'address' => trim(
+                                    implode(', ', array_filter([
+                                        $profile->detail_alamat ?? null,
+                                        $profile->kabupaten     ?? null,
+                                        $profile->provinsi      ?? null,
+                                    ]))
+                                 ) ?: '-',
+                    'foto'    => $profile->foto
+                                    ? asset('storage/' . $profile->foto)
+                                    : null,
                     'socials' => [
-                        'linkedin' => $profile->linkedin_url,
-                        'instagram' => $profile->instagram_url,
-                    ]
+                        // ✅ FIX: linkedin bukan linkedin_url
+                        'linkedin'  => $profile->linkedin  ?? null,
+                        'instagram' => $profile->instagram ?? null,
+                    ],
                 ],
-                // Bagian Tengah: Akademik & Assessment (Gambar 4 & 5)
+
                 'academic' => [
-                    'university' => $profile->asal_kampus,
-                    'major' => $profile->prodi,
-                    'ipk' => $profile->ipk ?? '0.00',
-                    'graduation' => $profile->tahun_lulus ?? '-',
+                    'university' => $profile->universitas  ?? '-',
+                    'major'      => $profile->jurusan      ?? '-',
+                    'degree'     => $profile->jenjang      ?? '-',
+                    'ipk'        => $profile->ipk          ?? '0.00',
+                    'year_start' => $profile->tahun_masuk  ?? '-',
+                    'graduation' => $profile->tahun_lulus  ?? '-',
                 ],
+
                 'assessment' => [
-                    'score' => $application->test_score ?? 0,
-                    'summary' => 'Kandidat memiliki potensi teknis yang stabil.',
-                    'date' => $application->created_at->format('d M Y')
+                    // ✅ FIX: pakai pretest_score dari profile
+                    'score'       => $profile->pretest_score ?? 0,
+                    'finished_at' => $profile->test_finished_at
+                                        ? \Carbon\Carbon::parse($profile->test_finished_at)
+                                            ->format('d M Y H:i')
+                                        : null,
+                    'date'        => $application->created_at->format('d M Y'),
+                    'summary'     => ($profile->pretest_score ?? 0) > 0
+                                        ? 'Kandidat telah menyelesaikan asesmen online.'
+                                        : 'Kandidat belum menyelesaikan asesmen.',
                 ],
-                // Bagian Kanan: Dokumen (Gambar 4)
+
                 'documents' => [
-                    'cv' => $profile->cv_path ? url('storage/'.$profile->cv_path) : null,
-                    'portfolio' => $profile->portfolio_url,
-                    'ktp' => $profile->ktp_path ? url('storage/'.$profile->ktp_path) : null,
-                ]
-            ]
+                    // ✅ FIX: cv_pdf & portofolio_pdf sesuai database
+                    'cv'        => $profile->cv_pdf
+                                    ? asset('storage/' . $profile->cv_pdf)
+                                    : null,
+                    'portfolio' => $profile->portofolio_pdf
+                                    ? asset('storage/' . $profile->portofolio_pdf)
+                                    : null,
+                    'ktp'       => $profile->ktp_path
+                                    ? asset('storage/' . $profile->ktp_path)
+                                    : null,
+                ],
+
+                'application' => [
+                    'id'         => $application->id,
+                    'status'     => $application->status,
+                    'motivation' => $application->motivation ?? '-',
+                    'position'   => $application->lowongan->judul_posisi
+                                    ?? $application->lowongan->judul_pekerjaan
+                                    ?? '-',
+                    'applied_at' => $application->created_at->format('d M Y'),
+                ],
+            ],
         ]);
     }
 
-    /**
-     * CREATE MANUAL KANDIDATE (Gambar 3)
-     */
     public function storeManualCandidate(Request $request)
     {
         $validated = $request->validate([
-            'nama' => 'required|string',
-            'email' => 'required|email|unique:users,email',
-            'notelp' => 'required',
-            'asal_kampus' => 'required',
-            'prodi' => 'required',
+            'nama'        => 'required|string',
+            'email'       => 'required|email|unique:users,email',
+            'notelp'      => 'required',
+            'universitas' => 'required',
+            'jurusan'     => 'required',
         ]);
 
-        $candidate = DB::transaction(function () use ($validated) {
+        DB::transaction(function () use ($validated) {
             $user = User::create([
-                'nama' => $validated['nama'],
-                'email' => $validated['email'],
+                'nama'     => $validated['nama'],
+                'email'    => $validated['email'],
                 'password' => Hash::make(Str::random(16)),
-                'role' => 'intern',
-                'notelp' => $validated['notelp'],
+                'role'     => 'intern',
+                'notelp'   => $validated['notelp'],
             ]);
 
             InternProfile::create([
-                'user_id' => $user->user_id,
-                'asal_kampus' => $validated['asal_kampus'],
-                'prodi' => $validated['prodi'],
-                'is_profile_complete' => true 
+                'user_id'             => $user->user_id,
+                // ✅ FIX: universitas & jurusan sesuai kolom database
+                'universitas'         => $validated['universitas'],
+                'jurusan'             => $validated['jurusan'],
+                'is_profile_complete' => true,
             ]);
-
-            return $user;
         });
 
-        return response()->json(['status' => 'success', 'message' => 'Kandidat manual berhasil dibuat']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Kandidat manual berhasil dibuat',
+        ]);
     }
 
-    /**
-     * UPDATE STATUS (Gambar 6)
-     */
     public function updateCandidateStatus(Request $request, $id)
     {
         $validated = $request->validate([
-            'status' => 'required|in:PENDING,REVIEWED,SHORTLISTED,INTERVIEW,REJECTED,OFFER', 
+            'status' => 'required|in:PENDING,REVIEWED,SHORTLISTED,INTERVIEW,REJECTED,OFFER',
         ]);
 
         $application = JobApplication::with(['user', 'lowongan.companyProfile'])->findOrFail($id);
@@ -167,38 +199,41 @@ class TalentController extends Controller
 
         if ($request->send_notification && $application->user) {
             $application->user->notify(new CandidateStatusUpdated(
-                $validated['status'], 
-                $application->lowongan->judul_pekerjaan, 
+                $validated['status'],
+                $application->lowongan->judul_posisi
+                    ?? $application->lowongan->judul_pekerjaan,
                 $application->lowongan->companyProfile->nama_perusahaan ?? 'Vokaseek'
             ));
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Status diperbarui!']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Status diperbarui!',
+        ]);
     }
 
-    /**
-     * KANDIDAT TERPILIH (Gambar 7)
-     */
     public function getSelectedCandidates(Request $request)
     {
         $company = $request->user()->companyProfile;
 
         $candidates = JobApplication::with(['user.internProfile', 'lowongan'])
-            ->whereHas('lowongan', function($q) use ($company) {
+            ->whereHas('lowongan', function ($q) use ($company) {
                 $q->where('company_profile_id', $company->id);
             })
             ->whereIn('status', ['OFFER', 'SHORTLISTED', 'INTERVIEW'])
-            ->latest()->get();
+            ->latest()
+            ->get();
 
         return response()->json([
-            'status' => 'success', 
-            'data' => $candidates->map(fn($app) => [
-                'id' => $app->id,
+            'status' => 'success',
+            'data'   => $candidates->map(fn($app) => [
+                'id'           => $app->id,
                 'candidate_id' => 'KDT-' . str_pad($app->user_id, 3, '0', STR_PAD_LEFT),
-                'name' => $app->user->nama,
-                'position' => $app->lowongan->judul_pekerjaan,
-                'status' => $app->status,
-            ])
+                'name'         => $app->user->nama,
+                'position'     => $app->lowongan->judul_posisi
+                                  ?? $app->lowongan->judul_pekerjaan,
+                'status'       => $app->status,
+            ]),
         ]);
     }
 }
