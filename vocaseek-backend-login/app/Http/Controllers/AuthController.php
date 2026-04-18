@@ -9,12 +9,15 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
     public function register(Request $request)
     {
-        // 1. Validasi Lengkap sesuai kebutuhan Intern & Company
         $request->validate([
             'nama'     => 'required|string|max:100',
             'email'    => 'required|string|email|max:100|unique:users',
@@ -28,7 +31,6 @@ class AuthController extends Controller
 
         DB::beginTransaction();
         try {
-            // 2. Simpan Data User Utama
             $user = User::create([
                 'nama'     => $request->nama,
                 'email'    => $request->email,
@@ -37,12 +39,10 @@ class AuthController extends Controller
                 'notelp'   => $request->notelp,
             ]);
 
-            // 3. Logika Pembuatan Profil berdasarkan Role
             if ($user->role === 'intern') {
                 InternProfile::create([
-                    'user_id' => $user->user_id,
-                    // Pastikan kolom ini ada di database atau hapus jika tidak digunakan
-                    'is_profile_complete' => false 
+                    'user_id'             => $user->user_id,
+                    'is_profile_complete' => false,
                 ]);
             } elseif ($user->role === 'company') {
                 $loaPath  = $request->file('loa_pdf')->store('documents/loa', 'public');
@@ -69,23 +69,19 @@ class AuthController extends Controller
 
     public function login(Request $request)
     {
-        // 1. Validasi Input Login
         $credentials = $request->validate([
             'email'    => 'required|email',
             'password' => 'required',
         ]);
 
-        // 2. Cek Kredensial
         if (Auth::attempt($credentials)) {
-            $user = Auth::user();
-            
-            // 3. PEMBUATAN TOKEN SANCTUM (Penting agar bisa akses update-profile)
+            $user  = Auth::user();
             $token = $user->createToken('auth_token')->plainTextToken;
 
             return response()->json([
                 'message' => 'Login berhasil',
                 'token'   => $token,
-                'user'    => $user
+                'user'    => $user,
             ], 200);
         }
 
@@ -94,8 +90,82 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        // Menghapus token saat ini
         $request->user()->currentAccessToken()->delete();
         return response()->json(['message' => 'Berhasil logout'], 200);
+    }
+
+    // ─── LUPA PASSWORD ────────────────────────────────────────────
+
+    public function forgotPassword(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        try {
+            $status = Password::sendResetLink(
+                $request->only('email')
+            );
+
+            if ($status === Password::RESET_LINK_SENT) {
+                return response()->json([
+                    'message' => 'Link reset password telah dikirim ke email Anda.',
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Email tidak ditemukan.',
+            ], 422);
+
+        } catch (\Throwable $e) {
+            Log::error('ForgotPassword Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Email reset password gagal dikirim.',
+                'debug'   => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'token'                 => 'required',
+            'email'                 => 'required|email',
+            'password'              => 'required|min:8|confirmed',
+            'password_confirmation' => 'required',
+        ]);
+
+        try {
+            $status = Password::reset(
+                $request->only('email', 'password', 'password_confirmation', 'token'),
+                function (User $user, string $password) {
+                    $user->forceFill([
+                        'password' => Hash::make($password),
+                    ])->setRememberToken(Str::random(60));
+
+                    $user->save();
+                    event(new PasswordReset($user));
+                }
+            );
+
+            if ($status === Password::PASSWORD_RESET) {
+                return response()->json([
+                    'message' => 'Password berhasil direset.',
+                ], 200);
+            }
+
+            return response()->json([
+                'message' => 'Token tidak valid atau sudah expired.',
+            ], 422);
+
+        } catch (\Throwable $e) {
+            Log::error('ResetPassword Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Gagal reset password.',
+                'debug'   => $e->getMessage(),
+            ], 500);
+        }
     }
 }
