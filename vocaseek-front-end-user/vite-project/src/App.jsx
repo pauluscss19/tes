@@ -11,6 +11,8 @@ import AssessmentReview from "./pages/AssessmentReview";
 import TambahKandidat from "./pages/TambahKandidat";
 import CompanyProfile from "./pages/CompanyProfile";
 import CompanyProfileSettings from "./pages/CompanyProfileSettings";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword  from "./pages/ResetPassword";
 
 export default function App() {
   return (
@@ -22,7 +24,8 @@ export default function App() {
         <Route path="/lowongan/tambah" element={<CreateJob />} />
         <Route path="/lowongan/pratinjau" element={<CreateJobPreview />} />
         <Route path="/lowongan/applicants" element={<JobApplicants />} />
-        
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/reset-password"  element={<ResetPassword />} />
         <Route path="/company-profile" element={<CompanyProfile />} />
         <Route path="/company-profile/settings" element={<CompanyProfileSettings />}/>
 
