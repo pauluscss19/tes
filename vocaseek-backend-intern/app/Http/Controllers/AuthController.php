@@ -1,61 +1,77 @@
 <?php
 
-namespace App\Http\Controllers\Auth;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\InternProfile;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 
-class GoogleController extends Controller
+class AuthController extends Controller
 {
-    public function redirectToGoogle()
+    public function register(Request $request)
     {
-        return Socialite::driver('google')->stateless()->redirect();
+        $request->validate([
+            'nama'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8|confirmed',
+            'notelp'   => 'nullable|string|max:20',
+        ]);
+
+        $user = User::create([
+            'nama'     => $request->nama,
+            'email'    => $request->email,
+            'password' => Hash::make($request->password),
+            'role'     => 'intern',
+            'notelp'   => $request->notelp ?? '-',
+        ]);
+
+        InternProfile::create([
+            'user_id'             => $user->user_id,
+            'is_profile_complete' => false,
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Registrasi berhasil.',
+            'token'   => $token,
+            'user'    => $user,
+        ], 201);
     }
 
-    public function handleGoogleCallback()
+    public function login(Request $request)
     {
-        try {
-            $googleUser = Socialite::driver('google')->stateless()->user();
-            
-            DB::beginTransaction();
+        $request->validate([
+            'email'    => 'required|email',
+            'password' => 'required|string',
+        ]);
 
-            // Cari user berdasarkan email
-            $user = User::where('email', $googleUser->getEmail())->first();
+        $user = User::where('email', $request->email)->first();
 
-            if (!$user) {
-                // Jika user belum ada, daftarkan sebagai 'intern' secara default
-                $user = User::create([
-                    'nama'      => $googleUser->getName(),
-                    'email'     => $googleUser->getEmail(),
-                    'google_id' => $googleUser->getId(),
-                    'role'      => 'intern', // Default role untuk login google
-                    'password'  => bcrypt(Str::random(16)),
-                    'notelp'    => '-', // Nilai sementara karena google tidak kasih no telp
-                ]);
-
-                // Buat profil intern (Sama seperti logika register kamu)
-                InternProfile::create([
-                    'user_id' => $user->user_id,
-                    'is_profile_complete' => false
-                ]);
-            }
-
-            DB::commit();
-
-            // Login-kan user
-            $token = $user->createToken('auth_token')->plainTextToken;
-
-            // Redirect ke Frontend (React) membawa token
-            return redirect('http://localhost:3000/login-success?token=' . $token);
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            return redirect('http://localhost:3000/login?error=' . urlencode($e->getMessage()));
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'email' => ['Email atau password salah.'],
+            ]);
         }
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Login berhasil.',
+            'token'   => $token,
+            'user'    => $user,
+        ]);
+    }
+
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Logout berhasil.',
+        ]);
     }
 }

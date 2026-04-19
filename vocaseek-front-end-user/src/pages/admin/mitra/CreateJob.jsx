@@ -106,7 +106,7 @@ export default function CreateJob() {
     persyaratan: "",
     deadline: "",
     mulai_kerja: "",
-    status: "ACTIVE",
+    status: "OPEN",              // ✅ fix: dari "ACTIVE" → "OPEN"
   });
 
   const updateField = (field) => (event) => {
@@ -118,22 +118,19 @@ export default function CreateJob() {
   };
 
   const buildPayload = () => {
-    const salaryRange = [formData.gaji_min, formData.gaji_max]
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .join(" - ");
-
     return {
-      judul_posisi: formData.judul_posisi.trim(),
+      judul_pekerjaan: formData.judul_posisi.trim(),       // ✅ fix
+      kategori_pekerjaan: formData.tipe_pekerjaan,         // ✅ fix: field baru
+      tipe_pekerjaan: formData.tipe_pekerjaan,
+      lokasi: formData.lokasi.trim(),
+      pengaturan_kerja: formData.tipe_magang,              // ✅ fix
+      gaji_min: formData.gaji_min || null,                 // ✅ fix: dipisah
+      gaji_max: formData.gaji_max || null,                 // ✅ fix: dipisah
       deskripsi_pekerjaan: formData.deskripsi_pekerjaan.trim(),
       persyaratan: formData.persyaratan.trim(),
-      lokasi: formData.lokasi.trim(),
-      tipe_magang: formData.tipe_magang,
-      gaji_per_bulan: salaryRange || null,
+      tgl_tutup_lamaran: formData.deadline || null,        // ✅ fix
+      tgl_mulai_kerja: formData.mulai_kerja || null,       // ✅ fix
       status: formData.status,
-      tipe_pekerjaan: formData.tipe_pekerjaan,
-      tanggal_penutupan_lamaran: formData.deadline || null,
-      tanggal_mulai_kerja: formData.mulai_kerja || null,
     };
   };
 
@@ -141,7 +138,7 @@ export default function CreateJob() {
     const payload = buildPayload();
 
     if (
-      !payload.judul_posisi ||
+      !payload.judul_pekerjaan ||
       !payload.deskripsi_pekerjaan ||
       !payload.persyaratan ||
       !payload.lokasi
@@ -346,8 +343,8 @@ export default function CreateJob() {
                   <input
                     type="radio"
                     name="jobStatus"
-                    value="ACTIVE"
-                    checked={formData.status === "ACTIVE"}
+                    value="OPEN"                          // ✅ fix: dari "ACTIVE" → "OPEN"
+                    checked={formData.status === "OPEN"}  // ✅ fix
                     onChange={updateField("status")}
                     className="create-job__radio create-job__radio--open"
                   />

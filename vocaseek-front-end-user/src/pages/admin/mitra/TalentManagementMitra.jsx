@@ -16,59 +16,55 @@ import {
 
 import { useNavigate } from "react-router-dom";
 import {
-  Star,
-  CalendarDays,
-  CircleCheck,
-  Plus,
-  Filter,
-  Eye,
-  Mail,
-  Trash2,
-  FolderOpen,
-  ChevronDown,
-  X,
-  Check,
-  SquarePen,
+  Star, CalendarDays, CircleCheck, Plus, Filter,
+  Eye, Mail, Trash2, FolderOpen, ChevronDown,
+  X, Check, SquarePen,
 } from "lucide-react";
+
+// ─── constants ────────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
   { value: "ALL",         label: "Semua Status" },
   { value: "PENDING",     label: "Pending" },
   { value: "SHORTLISTED", label: "Shortlisted" },
-  { value: "INTERVIEWING",label: "Interviewing" },
-  { value: "OFFERED",     label: "Offered" },
-  { value: "HIRED",       label: "Hired" },
+  { value: "INTERVIEW",   label: "Interview" },
+  { value: "OFFER",       label: "Offered" },
   { value: "REJECTED",    label: "Rejected" },
 ];
 
 const WORK_TYPE_OPTIONS = [
-  { value: "ALL",         label: "Semua Tipe" },
-  { value: "Internship",  label: "Internship" },
-  { value: "Full Time",   label: "Full Time" },
+  { value: "ALL",        label: "Semua Tipe" },
+  { value: "Internship", label: "Internship" },
+  { value: "Full Time",  label: "Full Time" },
 ];
 
 const POSITION_OPTIONS = [
-  { value: "ALL",                   label: "Semua Posisi" },
-  { value: "Mechanical Engineer",   label: "Mechanical Engineer" },
-  { value: "UI/UX Designer",        label: "UI/UX Designer" },
-  { value: "Frontend Developer",    label: "Frontend Developer" },
-  { value: "DevOps Engineer",       label: "DevOps Engineer" },
-  { value: "Project Manager",       label: "Project Manager" },
-  { value: "DevOps Specialist",     label: "DevOps Specialist" },
-  { value: "Frontend Engineer",     label: "Frontend Engineer" },
-  { value: "Product Manager",       label: "Product Manager" },
+  { value: "ALL",                 label: "Semua Posisi" },
+  { value: "Mechanical Engineer", label: "Mechanical Engineer" },
+  { value: "UI/UX Designer",      label: "UI/UX Designer" },
+  { value: "Frontend Developer",  label: "Frontend Developer" },
+  { value: "DevOps Engineer",     label: "DevOps Engineer" },
+  { value: "Project Manager",     label: "Project Manager" },
+  { value: "DevOps Specialist",   label: "DevOps Specialist" },
+  { value: "Frontend Engineer",   label: "Frontend Engineer" },
+  { value: "Product Manager",     label: "Product Manager" },
 ];
 
 const ITEMS_PER_PAGE = 5;
 
-// ─── helpers ────────────────────────────────────────────────────────────────
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+function isValidImageUrl(str) {
+  if (!str || typeof str !== "string") return false;
+  return str.startsWith("http://") || str.startsWith("https://") || str.startsWith("/");
+}
 
 function extractCandidateCollection(payload) {
-  if (Array.isArray(payload))               return payload;
-  if (Array.isArray(payload?.data))         return payload.data;
-  if (Array.isArray(payload?.data?.data))   return payload.data.data;
-  if (Array.isArray(payload?.candidates))   return payload.candidates;
-  if (Array.isArray(payload?.talents))      return payload.talents;
+  if (Array.isArray(payload))             return payload;
+  if (Array.isArray(payload?.data))       return payload.data;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.candidates)) return payload.candidates;
+  if (Array.isArray(payload?.talents))    return payload.talents;
   return [];
 }
 
@@ -77,94 +73,101 @@ function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
+    day: "numeric", month: "short", year: "numeric",
   });
 }
 
 function normalizeCandidateStatus(value) {
   const normalized = String(value || "PENDING").toUpperCase();
-  const aliases = { REVIEW: "PENDING", ACCEPTED: "HIRED" };
+  const aliases = {
+    REVIEW:       "PENDING",
+    ACCEPTED:     "OFFER",
+    INTERVIEWING: "INTERVIEW",
+    OFFERED:      "OFFER",
+    HIRED:        "OFFER",
+  };
   return aliases[normalized] || normalized;
 }
 
-// ✅ REVISI UTAMA: baca field name/position/type/date_applied dari backend baru
 function mapCandidate(item, index) {
   const user    = item?.user || item?.intern || item?.candidate || {};
   const profile = user?.intern_profile || user?.internProfile || item?.intern_profile || {};
-
-  // rawId = integer murni untuk URL & API call
-  const rawId = item?.id ?? item?.application_id ?? user?.user_id ?? (index + 1);
-
-  // displayId = KDT-001 hanya untuk tampilan di kolom ID tabel
+  const rawId   = item?.id ?? item?.application_id ?? user?.user_id ?? (index + 1);
   const displayId = `KDT-${String(rawId).padStart(3, "0")}`;
 
+  const rawImage =
+    profile?.foto ||
+    user?.foto    ||
+    item?.foto    ||
+    null;
+
   return {
-    raw:        item,
-    backendId:  rawId,
-    id:         displayId,
-
-    // ✅ backend sekarang kirim field 'name' langsung
-    name:
-      item?.name       ||
-      user?.nama       ||
-      item?.nama       ||
-      "Kandidat",
-
-    // ✅ backend sekarang kirim field 'email' langsung
-    email:
-      item?.email      ||
-      user?.email      ||
-      "Email belum tersedia",
-
-    // ✅ backend sekarang kirim field 'position' langsung
+    raw:       item,
+    backendId: rawId,
+    id:        displayId,
+    name:      item?.name  || user?.nama  || item?.nama  || "Kandidat",
+    email:     item?.email || user?.email || "Email belum tersedia",
     role:
-      item?.position            ||
-      item?.posisi              ||
+      item?.position               ||
+      item?.posisi                 ||
       item?.lowongan?.judul_posisi ||
-      item?.job?.judul_posisi   ||
+      item?.job?.judul_posisi      ||
       "Kandidat",
-
-    level:
-      item?.level      ||
-      profile?.jenjang ||
-      "Junior",
-
-    // ✅ backend sekarang kirim field 'type' langsung (bukan work_type)
+    level:    item?.level    || profile?.jenjang || "Junior",
     workType:
-      item?.type            ||
-      item?.work_type       ||
-      item?.tipe_pekerjaan  ||
+      item?.type           ||
+      item?.work_type      ||
+      item?.tipe_pekerjaan ||
       "Internship",
-
-    // ✅ backend sekarang kirim field 'date_applied' langsung
     applyDate: formatDate(
       item?.date_applied   ||
       item?.created_at     ||
       item?.apply_date     ||
       item?.tanggal_daftar
     ),
-
     status: normalizeCandidateStatus(item?.status || item?.candidate_status),
-
-    image:
-      profile?.foto    ||
-      user?.foto       ||
-      item?.foto       ||
-      "/default-avatar.png",
-
-    // ✅ link selalu pakai integer rawId
-    link:    `/admin/mitra/talent/${rawId}`,
-    selected: false,
+    // ✅ validasi URL — kalau null/kosong langsung default, tidak coba load
+    image: isValidImageUrl(rawImage) ? rawImage : "/default-avatar.png",
+    link:  `/admin/mitra/talent/${rawId}`,
   };
 }
 
 function getStatusLabel(status) {
-  return STATUS_OPTIONS.find((item) => item.value === status)?.label || status;
+  return STATUS_OPTIONS.find((o) => o.value === status)?.label || status;
 }
 
-// ─── sub-components ──────────────────────────────────────────────────────────
+function computeStats(list) {
+  return {
+    total_shortlisted:   list.filter((c) => c.status === "SHORTLISTED").length,
+    total_interviews:    list.filter((c) => c.status === "INTERVIEW").length,
+    accepted_this_month: list.filter((c) => c.status === "OFFER").length,
+  };
+}
+
+// ─── AvatarImg — komponen stabil, tidak re-render karena parent ───────────────
+// ✅ KUNCI FIX KEDIP: simpan imgSrc di state lokal → tidak terpengaruh
+//    re-render parent. React.memo → tidak render ulang kalau src tidak berubah.
+const AvatarImg = React.memo(function AvatarImg({ src, alt, className }) {
+  const [imgSrc, setImgSrc] = React.useState(
+    src && src !== "" ? src : "/default-avatar.png"
+  );
+
+  // Sync kalau src berubah (misal data refetch)
+  React.useEffect(() => {
+    setImgSrc(src && src !== "" ? src : "/default-avatar.png");
+  }, [src]);
+
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      className={className}
+      onError={() => setImgSrc("/default-avatar.png")}
+    />
+  );
+});
+
+// ─── sub-components ───────────────────────────────────────────────────────────
 
 function StatCard({ title, value, subtitle, icon, iconWrapClass = "", extra = null }) {
   return (
@@ -188,37 +191,24 @@ function Badge({ children, className = "" }) {
   return <span className={`tm-badge ${className}`}>{children}</span>;
 }
 
-function CandidateRow({
+// ✅ React.memo — tidak re-render kalau props tidak berubah
+const CandidateRow = React.memo(function CandidateRow({
   selected = false,
-  id,
-  name,
-  email,
-  role,
-  level,
-  workType,
-  applyDate,
-  status,
-  image,
-  onToggleSelect,
-  onClick,
-  onEditStatus,
-  onViewDetail,
+  id, name, email, role, level, workType, applyDate, status, image, backendId,
+  onToggleSelect, onClick, onEditStatus, onViewDetail,
 }) {
   const statusMap = {
-    PENDING:      "tm-badge--pending",
-    SHORTLISTED:  "tm-badge--shortlisted",
-    REJECTED:     "tm-badge--rejected",
-    INTERVIEWING: "tm-badge--interviewing",
-    OFFERED:      "tm-badge--offered",
-    HIRED:        "tm-badge--hired",
+    PENDING:     "tm-badge--pending",
+    SHORTLISTED: "tm-badge--shortlisted",
+    REJECTED:    "tm-badge--rejected",
+    INTERVIEW:   "tm-badge--interviewing",
+    OFFER:       "tm-badge--offered",
   };
-
   const levelMap = {
     Senior:      "tm-text-green",
     "Mid-Level": "tm-text-orange",
     Junior:      "tm-text-orange",
   };
-
   const workTypeMap = {
     Internship:  "tm-badge--internship",
     "Full Time": "tm-badge--fulltime",
@@ -239,13 +229,12 @@ function CandidateRow({
           />
         </div>
       </td>
-
       <td className="tm-table__cell tm-table__cell--muted tm-whitespace-pre">{id}</td>
-
       <td className="tm-table__cell">
         <div className="tm-candidate">
           <div className="tm-candidate__avatar-wrap">
-            <img src={image} alt={name} className="tm-candidate__avatar" />
+            {/* ✅ Pakai AvatarImg — tidak kedip */}
+            <AvatarImg src={image} alt={name} className="tm-candidate__avatar" />
           </div>
           <div>
             <div className="tm-candidate__name">{name}</div>
@@ -253,22 +242,17 @@ function CandidateRow({
           </div>
         </div>
       </td>
-
       <td className="tm-table__cell">
         <div className="tm-role">{role}</div>
         <div className={`tm-role__level ${levelMap[level] || ""}`}>{level}</div>
       </td>
-
       <td className="tm-table__cell">
         <Badge className={workTypeMap[workType] || ""}>{workType}</Badge>
       </td>
-
       <td className="tm-table__cell tm-table__cell--muted tm-whitespace-pre">{applyDate}</td>
-
       <td className="tm-table__cell">
         <Badge className={statusMap[status] || ""}>{getStatusLabel(status)}</Badge>
       </td>
-
       <td className="tm-table__cell">
         <div className="tm-actions">
           <button
@@ -285,36 +269,29 @@ function CandidateRow({
           >
             <Eye size={15} />
           </button>
-          <button
-            type="button"
-            className="tm-actions__icon-btn"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <button type="button" className="tm-actions__icon-btn" onClick={(e) => e.stopPropagation()}>
             <Mail size={15} />
           </button>
-          <button
-            type="button"
-            className="tm-actions__icon-btn"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <button type="button" className="tm-actions__icon-btn" onClick={(e) => e.stopPropagation()}>
             <Trash2 size={15} />
           </button>
         </div>
       </td>
     </tr>
   );
-}
+});
 
-function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggleSelect }) {
+// ✅ React.memo pada CandidateCard juga
+const CandidateCard = React.memo(function CandidateCard({
+  candidate, onClick, onEditStatus, onViewDetail, onToggleSelect,
+}) {
   const statusMap = {
-    PENDING:      "tm-badge--pending",
-    SHORTLISTED:  "tm-badge--shortlisted",
-    REJECTED:     "tm-badge--rejected",
-    INTERVIEWING: "tm-badge--interviewing",
-    OFFERED:      "tm-badge--offered",
-    HIRED:        "tm-badge--hired",
+    PENDING:     "tm-badge--pending",
+    SHORTLISTED: "tm-badge--shortlisted",
+    REJECTED:    "tm-badge--rejected",
+    INTERVIEW:   "tm-badge--interviewing",
+    OFFER:       "tm-badge--offered",
   };
-
   const workTypeMap = {
     Internship:  "tm-badge--internship",
     "Full Time": "tm-badge--fulltime",
@@ -324,11 +301,7 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
     <div className="tm-mobile-card" onClick={onClick}>
       <div className="tm-mobile-card__top">
         <div className="tm-candidate">
-          <img
-            src={candidate.image}
-            alt={candidate.name}
-            className="tm-candidate__avatar"
-          />
+          <AvatarImg src={candidate.image} alt={candidate.name} className="tm-candidate__avatar" />
           <div>
             <div className="tm-candidate__name">{candidate.name}</div>
             <div className="tm-candidate__email">{candidate.email}</div>
@@ -341,7 +314,6 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
         />
       </div>
-
       <div className="tm-mobile-card__grid">
         <div>
           <span className="tm-mobile-card__label">ID</span>
@@ -349,7 +321,7 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
         </div>
         <div>
           <span className="tm-mobile-card__label">Posisi</span>
-          <div className="tm-mobile-card__value tm-whitespace-pre">{candidate.role}</div>
+          <div className="tm-mobile-card__value">{candidate.role}</div>
         </div>
         <div>
           <span className="tm-mobile-card__label">Tanggal Daftar</span>
@@ -362,7 +334,6 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
           </div>
         </div>
       </div>
-
       <div className="tm-mobile-card__footer">
         <Badge className={statusMap[candidate.status] || ""}>{getStatusLabel(candidate.status)}</Badge>
         <button
@@ -375,17 +346,12 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
       </div>
     </div>
   );
-}
+});
 
+// ✅ Modal menerima snapshot candidate (bukan referensi dari candidateList)
 function ChangeStatusModal({
-  open,
-  candidate,
-  selectedStatus,
-  setSelectedStatus,
-  autoNotify,
-  setAutoNotify,
-  onClose,
-  onSave,
+  open, candidate, selectedStatus, setSelectedStatus,
+  autoNotify, setAutoNotify, onClose, onSave,
 }) {
   if (!open || !candidate) return null;
 
@@ -397,32 +363,22 @@ function ChangeStatusModal({
             <SquarePen size={20} className="tm-text-gold" />
             <h2 className="tm-modal__title">Ubah Status Kandidat</h2>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Tutup popup"
-            className="tm-modal__close"
-          >
+          <button type="button" onClick={onClose} aria-label="Tutup popup" className="tm-modal__close">
             <X size={22} />
           </button>
         </div>
-
         <div className="tm-modal__body">
           <div className="tm-modal__candidate-card">
-            <img
+            <AvatarImg
               src={candidate.image}
               alt={candidate.name}
               className="tm-modal__candidate-avatar"
-              onError={(e) => { e.currentTarget.src = "/default-avatar.png"; }}
             />
             <div>
               <div className="tm-modal__candidate-name">{candidate.name}</div>
-              <div className="tm-modal__candidate-role">
-                {candidate.role} • {candidate.level}
-              </div>
+              <div className="tm-modal__candidate-role">{candidate.role} • {candidate.level}</div>
             </div>
           </div>
-
           <div className="tm-modal__field">
             <label className="tm-modal__label">Pilih Status Baru</label>
             <div className="tm-select-wrap">
@@ -431,16 +387,13 @@ function ChangeStatusModal({
                 onChange={(e) => setSelectedStatus(e.target.value)}
                 className="tm-select"
               >
-                {STATUS_OPTIONS.filter((item) => item.value !== "ALL").map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
+                {STATUS_OPTIONS.filter((o) => o.value !== "ALL").map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
               <ChevronDown size={18} className="tm-select__icon" />
             </div>
           </div>
-
           <button
             type="button"
             onClick={() => setAutoNotify((prev) => !prev)}
@@ -457,32 +410,30 @@ function ChangeStatusModal({
             </span>
           </button>
         </div>
-
         <div className="tm-modal__footer">
-          <button type="button" onClick={onClose} className="tm-btn tm-btn--ghost">
-            Batal
-          </button>
-          <button type="button" onClick={onSave} className="tm-btn tm-btn--gold">
-            Simpan Perubahan
-          </button>
+          <button type="button" onClick={onClose} className="tm-btn tm-btn--ghost">Batal</button>
+          <button type="button" onClick={onSave} className="tm-btn tm-btn--gold">Simpan Perubahan</button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── main page ───────────────────────────────────────────────────────────────
+// ─── main page ────────────────────────────────────────────────────────────────
 
 export default function TalentManagement({ mode = "all" }) {
   const navigate = useNavigate();
 
   const [candidateList, setCandidateList] = React.useState([]);
-  const [selectedIds,   setSelectedIds]   = React.useState([]);
-  const [keyword,       setKeyword]       = React.useState("");
-  const [positionFilter,setPositionFilter]= React.useState("ALL");
-  const [workTypeFilter,setWorkTypeFilter]= React.useState("ALL");
-  const [statusFilter,  setStatusFilter]  = React.useState("ALL");
-  const [currentPage,   setCurrentPage]   = React.useState(1);
+  const [stats, setStats] = React.useState({
+    total_shortlisted: 0, total_interviews: 0, accepted_this_month: 0,
+  });
+  const [selectedIds,    setSelectedIds]    = React.useState([]);
+  const [keyword,        setKeyword]        = React.useState("");
+  const [positionFilter, setPositionFilter] = React.useState("ALL");
+  const [workTypeFilter, setWorkTypeFilter] = React.useState("ALL");
+  const [statusFilter,   setStatusFilter]   = React.useState("ALL");
+  const [currentPage,    setCurrentPage]    = React.useState(1);
 
   const [isStatusModalOpen, setIsStatusModalOpen] = React.useState(false);
   const [activeCandidate,   setActiveCandidate]   = React.useState(null);
@@ -493,7 +444,11 @@ export default function TalentManagement({ mode = "all" }) {
 
   const isShortlistedPage = mode === "shortlisted";
 
-  // ── fetch data ──────────────────────────────────────────────────────────────
+  const updateStats = React.useCallback((list) => {
+    setStats(computeStats(list));
+  }, []);
+
+  // ── fetch ──────────────────────────────────────────────────────────────────
   React.useEffect(() => {
     const loadCandidates = async () => {
       setIsLoading(true);
@@ -505,7 +460,13 @@ export default function TalentManagement({ mode = "all" }) {
 
         const nextCandidates = extractCandidateCollection(response.data).map(mapCandidate);
         setCandidateList(nextCandidates);
-        setSelectedIds(nextCandidates.filter((c) => c.selected).map((c) => c.id));
+        setSelectedIds([]);
+
+        if (response.data?.stats) {
+          setStats(response.data.stats);
+        } else {
+          updateStats(nextCandidates);
+        }
       } catch (error) {
         setCandidateList([]);
         setSelectedIds([]);
@@ -514,30 +475,29 @@ export default function TalentManagement({ mode = "all" }) {
         setIsLoading(false);
       }
     };
-
     loadCandidates();
-  }, [isShortlistedPage]);
+  }, [isShortlistedPage, updateStats]);
 
-  // ── status modal ─────────────────────────────────────────────────────────────
-  const openStatusModal = (candidate) => {
-    setActiveCandidate(candidate);
+  // ── modal handlers ─────────────────────────────────────────────────────────
+  const openStatusModal = React.useCallback((candidate) => {
+    // ✅ spread → putus referensi dari candidateList → modal tidak ikut re-render
+    setActiveCandidate({ ...candidate });
     setSelectedStatus(candidate.status || "PENDING");
     setAutoNotify(true);
     setIsStatusModalOpen(true);
-  };
+  }, []);
 
-  const closeStatusModal = () => {
+  const closeStatusModal = React.useCallback(() => {
     setIsStatusModalOpen(false);
     setActiveCandidate(null);
-  };
+  }, []);
 
-  const handleSaveStatus = async () => {
+  const handleSaveStatus = React.useCallback(async () => {
     if (!activeCandidate) return;
-
     try {
-      // ✅ selalu pakai backendId (integer) untuk API call
       await updateCompanyCandidateStatus(activeCandidate.backendId, {
-        status: selectedStatus,
+        status:            selectedStatus,
+        send_notification: autoNotify,
       });
     } catch (error) {
       setErrorMessage(getApiErrorMessage(error, "Status kandidat gagal diperbarui."));
@@ -549,56 +509,57 @@ export default function TalentManagement({ mode = "all" }) {
       const updated = prev.map((item) =>
         item.id === activeCandidate.id ? { ...item, status: selectedStatus } : item
       );
-
+      const finalList =
+        isShortlistedPage && selectedStatus !== "SHORTLISTED"
+          ? updated.filter((item) => item.id !== activeCandidate.id)
+          : updated;
+      updateStats(finalList);
       if (isShortlistedPage && selectedStatus !== "SHORTLISTED") {
-        const removed = updated.filter((item) => item.id !== activeCandidate.id);
         setSelectedIds((ids) => ids.filter((id) => id !== activeCandidate.id));
-        return removed;
       }
-
-      return updated;
+      return finalList;
     });
 
     closeStatusModal();
-  };
+  }, [activeCandidate, selectedStatus, autoNotify, isShortlistedPage, closeStatusModal, updateStats]);
 
-  // ── navigation ───────────────────────────────────────────────────────────────
-  const handleViewDetail = (candidate) => {
+  const handleViewDetail = React.useCallback((candidate) => {
     if (candidate.link) navigate(candidate.link);
-  };
+  }, [navigate]);
 
-  // ── selection ────────────────────────────────────────────────────────────────
-  const toggleSelect = (id) => {
+  // ── selection ──────────────────────────────────────────────────────────────
+  const toggleSelect = React.useCallback((id) => {
     setSelectedIds((prev) =>
-      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
-  };
+  }, []);
 
-  // ── filters ──────────────────────────────────────────────────────────────────
-  const resetFilters = () => {
+  // ── filters ────────────────────────────────────────────────────────────────
+  const resetFilters = React.useCallback(() => {
     setKeyword("");
     setPositionFilter("ALL");
     setWorkTypeFilter("ALL");
     setStatusFilter("ALL");
-  };
+  }, []);
 
-  const filteredCandidates = candidateList.filter((item) => {
-    const kw = keyword.trim().toLowerCase();
-    const matchKeyword =
-      kw === "" ||
-      item.name.toLowerCase().includes(kw)  ||
-      item.role.toLowerCase().includes(kw)  ||
-      item.email.toLowerCase().includes(kw) ||
-      item.id.toLowerCase().includes(kw);
+  const filteredCandidates = React.useMemo(() =>
+    candidateList.filter((item) => {
+      const kw = keyword.trim().toLowerCase();
+      const matchKeyword =
+        kw === "" ||
+        item.name.toLowerCase().includes(kw)  ||
+        item.role.toLowerCase().includes(kw)  ||
+        item.email.toLowerCase().includes(kw) ||
+        item.id.toLowerCase().includes(kw);
+      const matchPosition = positionFilter === "ALL" || item.role     === positionFilter;
+      const matchWorkType = workTypeFilter === "ALL"  || item.workType === workTypeFilter;
+      const matchStatus   = statusFilter   === "ALL"  || item.status   === statusFilter;
+      return matchKeyword && matchPosition && matchWorkType && matchStatus;
+    }),
+    [candidateList, keyword, positionFilter, workTypeFilter, statusFilter]
+  );
 
-    const matchPosition = positionFilter === "ALL" || item.role     === positionFilter;
-    const matchWorkType = workTypeFilter === "ALL"  || item.workType === workTypeFilter;
-    const matchStatus   = statusFilter   === "ALL"  || item.status   === statusFilter;
-
-    return matchKeyword && matchPosition && matchWorkType && matchStatus;
-  });
-
-  // ── pagination ───────────────────────────────────────────────────────────────
+  // ── pagination ─────────────────────────────────────────────────────────────
   const { totalPages, pageItems: paginatedCandidates } = React.useMemo(
     () => paginateItems(filteredCandidates, currentPage, ITEMS_PER_PAGE),
     [filteredCandidates, currentPage]
@@ -622,12 +583,12 @@ export default function TalentManagement({ mode = "all" }) {
     setCurrentPage(1);
   }, [keyword, positionFilter, workTypeFilter, statusFilter, isShortlistedPage]);
 
-  // ── select-all ───────────────────────────────────────────────────────────────
+  // ── select all ─────────────────────────────────────────────────────────────
   const allVisibleSelected =
     paginatedCandidates.length > 0 &&
     paginatedCandidates.every((item) => selectedIds.includes(item.id));
 
-  const toggleSelectAllVisible = () => {
+  const toggleSelectAllVisible = React.useCallback(() => {
     if (allVisibleSelected) {
       setSelectedIds((prev) =>
         prev.filter((id) => !paginatedCandidates.some((item) => item.id === id))
@@ -637,34 +598,42 @@ export default function TalentManagement({ mode = "all" }) {
         ...new Set([...prev, ...paginatedCandidates.map((item) => item.id)]),
       ]);
     }
-  };
+  }, [allVisibleSelected, paginatedCandidates]);
 
-  // ── bulk actions ─────────────────────────────────────────────────────────────
-  const handleInviteSelected = () => {
+  // ── bulk actions ───────────────────────────────────────────────────────────
+  const handleInviteSelected = React.useCallback(() => {
     if (!selectedIds.length) return;
-    setCandidateList((prev) =>
-      prev.map((item) =>
-        selectedIds.includes(item.id) ? { ...item, status: "INTERVIEWING" } : item
-      )
-    );
-  };
+    setCandidateList((prev) => {
+      const updated = prev.map((item) =>
+        selectedIds.includes(item.id) ? { ...item, status: "INTERVIEW" } : item
+      );
+      updateStats(updated);
+      return updated;
+    });
+  }, [selectedIds, updateStats]);
 
-  const handleMoveSelected = () => {
+  const handleMoveSelected = React.useCallback(() => {
     if (!selectedIds.length) return;
-    setCandidateList((prev) =>
-      prev.map((item) =>
+    setCandidateList((prev) => {
+      const updated = prev.map((item) =>
         selectedIds.includes(item.id) ? { ...item, status: "SHORTLISTED" } : item
-      )
-    );
-  };
+      );
+      updateStats(updated);
+      return updated;
+    });
+  }, [selectedIds, updateStats]);
 
-  const handleArchiveSelected = () => {
+  const handleArchiveSelected = React.useCallback(() => {
     if (!selectedIds.length) return;
-    setCandidateList((prev) => prev.filter((item) => !selectedIds.includes(item.id)));
+    setCandidateList((prev) => {
+      const updated = prev.filter((item) => !selectedIds.includes(item.id));
+      updateStats(updated);
+      return updated;
+    });
     setSelectedIds([]);
-  };
+  }, [selectedIds, updateStats]);
 
-  // ── labels ───────────────────────────────────────────────────────────────────
+  // ── labels ─────────────────────────────────────────────────────────────────
   const pageTitle      = isShortlistedPage ? "Kandidat Terpilih" : "Semua Kandidat";
   const pageBreadcrumb = isShortlistedPage ? "KANDIDAT TERPILIH" : "SEMUA KANDIDAT";
   const totalLabel     = isShortlistedPage
@@ -679,7 +648,7 @@ export default function TalentManagement({ mode = "all" }) {
   const bottomSummary =
     `Menampilkan ${paginationMeta.start} sampai ${paginationMeta.end} dari ${filteredCandidates.length} hasil`;
 
-  // ── pagination buttons (reusable) ─────────────────────────────────────────
+  // ── pagination buttons ─────────────────────────────────────────────────────
   const PaginationButtons = ({ prefix }) => (
     <div className="tm-pagination">
       <button
@@ -687,30 +656,17 @@ export default function TalentManagement({ mode = "all" }) {
         className="tm-pagination__btn tm-pagination__btn--edge"
         disabled={paginationMeta.currentPage === 1}
         onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-      >
-        ‹
-      </button>
+      >‹</button>
       {pageNumbers.map((pageNumber, index) =>
         pageNumber === "ellipsis" ? (
-          <button
-            key={`${prefix}-ellipsis-${index}`}
-            type="button"
-            className="tm-pagination__btn"
-            disabled
-          >
-            ...
-          </button>
+          <button key={`${prefix}-ellipsis-${index}`} type="button" className="tm-pagination__btn" disabled>...</button>
         ) : (
           <button
             key={`${prefix}-page-${pageNumber}`}
             type="button"
-            className={`tm-pagination__btn ${
-              pageNumber === paginationMeta.currentPage ? "tm-pagination__btn--active" : ""
-            }`}
+            className={`tm-pagination__btn ${pageNumber === paginationMeta.currentPage ? "tm-pagination__btn--active" : ""}`}
             onClick={() => setCurrentPage(pageNumber)}
-          >
-            {pageNumber}
-          </button>
+          >{pageNumber}</button>
         )
       )}
       <button
@@ -718,26 +674,20 @@ export default function TalentManagement({ mode = "all" }) {
         className="tm-pagination__btn tm-pagination__btn--edge"
         disabled={paginationMeta.currentPage === paginationMeta.totalPages}
         onClick={() => setCurrentPage((p) => Math.min(p + 1, paginationMeta.totalPages))}
-      >
-        ›
-      </button>
+      >›</button>
     </div>
   );
 
-  // ── render ───────────────────────────────────────────────────────────────────
+  // ── render ─────────────────────────────────────────────────────────────────
   return (
     <div className="tm-layout">
       <Sidebar />
-
       <main className="tm-main">
         <Topbar placeholder="Cari kandidat, pekerjaan, atau meeting..." />
-
         <section className="tm-page">
           <div className="tm-breadcrumbs">
-            <span>ADMIN</span>
-            <span>›</span>
-            <span>MANAJEMEN TALENT</span>
-            <span>›</span>
+            <span>ADMIN</span><span>›</span>
+            <span>MANAJEMEN TALENT</span><span>›</span>
             <span className="tm-breadcrumbs__active">{pageBreadcrumb}</span>
           </div>
 
@@ -748,8 +698,7 @@ export default function TalentManagement({ mode = "all" }) {
                 onClick={() => navigate("/admin/mitra/tambah-kandidat")}
                 className="tm-btn tm-btn--primary"
               >
-                <Plus size={16} />
-                Add Candidate
+                <Plus size={16} /> Add Candidate
               </button>
             )}
           </div>
@@ -768,24 +717,24 @@ export default function TalentManagement({ mode = "all" }) {
           <div className="tm-stats-grid">
             <StatCard
               title="Total Shortlisted"
-              value="0"
-              subtitle="Belum ada kandidat"
-              extra={<span className="tm-growth">0%</span>}
+              value={stats.total_shortlisted}
+              subtitle={stats.total_shortlisted > 0 ? `${stats.total_shortlisted} kandidat` : "Belum ada kandidat"}
+              extra={<span className="tm-growth">Live</span>}
               icon={<Star size={18} className="tm-text-blue" />}
               iconWrapClass="tm-bg-light-blue"
             />
             <StatCard
               title="Interview Dijadwalkan"
-              value="0"
-              subtitle="Belum ada interview"
-              extra={<Badge className="tm-badge--upcoming">Kosong</Badge>}
+              value={stats.total_interviews}
+              subtitle={stats.total_interviews > 0 ? `${stats.total_interviews} interview` : "Belum ada interview"}
+              extra={<Badge className="tm-badge--upcoming">{stats.total_interviews > 0 ? "Aktif" : "Kosong"}</Badge>}
               icon={<CalendarDays size={18} className="tm-text-purple" />}
               iconWrapClass="tm-bg-light-purple"
             />
             <StatCard
               title="Diterima Bulan Ini"
-              value="0"
-              subtitle="Belum ada kandidat diterima"
+              value={stats.accepted_this_month}
+              subtitle={stats.accepted_this_month > 0 ? "kandidat diterima" : "Belum ada kandidat diterima"}
               extra={<span className="tm-extra-text">kandidat</span>}
               icon={<CircleCheck size={18} className="tm-text-green" />}
               iconWrapClass="tm-bg-light-green"
@@ -805,7 +754,6 @@ export default function TalentManagement({ mode = "all" }) {
                     Reset Semua
                   </button>
                 </div>
-
                 <div className="tm-filter-panel__body">
                   <div>
                     <label className="tm-input-label">Kata Kunci</label>
@@ -817,50 +765,29 @@ export default function TalentManagement({ mode = "all" }) {
                       onChange={(e) => setKeyword(e.target.value)}
                     />
                   </div>
-
                   <div>
                     <label className="tm-input-label">Posisi</label>
                     <div className="tm-select-wrap">
-                      <select
-                        className="tm-input tm-input--select"
-                        value={positionFilter}
-                        onChange={(e) => setPositionFilter(e.target.value)}
-                      >
-                        {POSITION_OPTIONS.map((item) => (
-                          <option key={item.value} value={item.value}>{item.label}</option>
-                        ))}
+                      <select className="tm-input tm-input--select" value={positionFilter} onChange={(e) => setPositionFilter(e.target.value)}>
+                        {POSITION_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                       <ChevronDown size={16} className="tm-select__icon" />
                     </div>
                   </div>
-
                   <div>
                     <label className="tm-input-label">Tipe Pekerjaan</label>
                     <div className="tm-select-wrap">
-                      <select
-                        className="tm-input tm-input--select"
-                        value={workTypeFilter}
-                        onChange={(e) => setWorkTypeFilter(e.target.value)}
-                      >
-                        {WORK_TYPE_OPTIONS.map((item) => (
-                          <option key={item.value} value={item.value}>{item.label}</option>
-                        ))}
+                      <select className="tm-input tm-input--select" value={workTypeFilter} onChange={(e) => setWorkTypeFilter(e.target.value)}>
+                        {WORK_TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                       <ChevronDown size={16} className="tm-select__icon" />
                     </div>
                   </div>
-
                   <div>
                     <label className="tm-input-label">Status Kandidat</label>
                     <div className="tm-select-wrap">
-                      <select
-                        className="tm-input tm-input--select"
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                      >
-                        {STATUS_OPTIONS.map((item) => (
-                          <option key={item.value} value={item.value}>{item.label}</option>
-                        ))}
+                      <select className="tm-input tm-input--select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                        {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                       <ChevronDown size={16} className="tm-select__icon" />
                     </div>
@@ -874,11 +801,17 @@ export default function TalentManagement({ mode = "all" }) {
                 <div className="tm-talent-pool-card__subtitle">Snapshot basis data saat ini.</div>
                 <div className="tm-talent-pool-card__stats">
                   <div>
-                    <div className="tm-talent-pool-card__number">0</div>
+                    <div className="tm-talent-pool-card__number">{candidateList.length}</div>
                     <div className="tm-talent-pool-card__label">Total Talenta</div>
                   </div>
                   <div className="tm-talent-pool-card__stats-right">
-                    <div className="tm-talent-pool-card__number tm-talent-pool-card__number--gold">0</div>
+                    <div className="tm-talent-pool-card__number tm-talent-pool-card__number--gold">
+                      {candidateList.filter((c) => {
+                        const d = new Date(c.raw?.created_at);
+                        const now = new Date();
+                        return (now - d) / (1000 * 60 * 60 * 24) <= 7;
+                      }).length}
+                    </div>
                     <div className="tm-talent-pool-card__label">Baru minggu ini</div>
                   </div>
                 </div>
@@ -890,40 +823,20 @@ export default function TalentManagement({ mode = "all" }) {
               <div className="tm-table-toolbar">
                 <div className="tm-table-toolbar__left">
                   <label className="tm-select-all">
-                    <input
-                      type="checkbox"
-                      checked={allVisibleSelected}
-                      onChange={toggleSelectAllVisible}
-                    />
+                    <input type="checkbox" checked={allVisibleSelected} onChange={toggleSelectAllVisible} />
                     <span>{totalLabel}</span>
                   </label>
                   <span className="tm-divider">|</span>
                   <span className="tm-toolbar-muted">{selectedLabel}</span>
                 </div>
-
                 <div className="tm-table-toolbar__actions">
-                  <button
-                    type="button"
-                    className="tm-btn tm-btn--invite"
-                    onClick={handleInviteSelected}
-                    disabled={!selectedIds.length}
-                  >
+                  <button type="button" className="tm-btn tm-btn--invite" onClick={handleInviteSelected} disabled={!selectedIds.length}>
                     <Mail size={14} /> Undang
                   </button>
-                  <button
-                    type="button"
-                    className="tm-btn tm-btn--neutral"
-                    onClick={handleMoveSelected}
-                    disabled={!selectedIds.length}
-                  >
+                  <button type="button" className="tm-btn tm-btn--neutral" onClick={handleMoveSelected} disabled={!selectedIds.length}>
                     <FolderOpen size={14} /> Pindahkan
                   </button>
-                  <button
-                    type="button"
-                    className="tm-btn tm-btn--danger-soft"
-                    onClick={handleArchiveSelected}
-                    disabled={!selectedIds.length}
-                  >
+                  <button type="button" className="tm-btn tm-btn--danger-soft" onClick={handleArchiveSelected} disabled={!selectedIds.length}>
                     <Trash2 size={14} /> Arsip
                   </button>
                 </div>
@@ -956,8 +869,18 @@ export default function TalentManagement({ mode = "all" }) {
                     ) : paginatedCandidates.length > 0 ? (
                       paginatedCandidates.map((item) => (
                         <CandidateRow
-                          key={item.id}
-                          {...item}
+                          key={item.backendId}
+                          backendId={item.backendId}
+                          id={item.id}
+                          name={item.name}
+                          email={item.email}
+                          role={item.role}
+                          level={item.level}
+                          workType={item.workType}
+                          applyDate={item.applyDate}
+                          status={item.status}
+                          image={item.image}
+                          link={item.link}
                           selected={selectedIds.includes(item.id)}
                           onToggleSelect={() => toggleSelect(item.id)}
                           onClick={item.link ? () => navigate(item.link) : undefined}
@@ -983,14 +906,12 @@ export default function TalentManagement({ mode = "all" }) {
                 {isLoading ? (
                   <div className="tm-mobile-card">
                     <div className="tm-candidate__name">Memuat kandidat...</div>
-                    <div className="tm-candidate__email">
-                      Sebentar ya, data sedang diambil dari backend.
-                    </div>
+                    <div className="tm-candidate__email">Sebentar ya, data sedang diambil.</div>
                   </div>
                 ) : paginatedCandidates.length > 0 ? (
                   paginatedCandidates.map((item) => (
                     <CandidateCard
-                      key={item.id}
+                      key={item.backendId}
                       candidate={{ ...item, selected: selectedIds.includes(item.id) }}
                       onToggleSelect={() => toggleSelect(item.id)}
                       onClick={item.link ? () => navigate(item.link) : undefined}
@@ -1001,9 +922,7 @@ export default function TalentManagement({ mode = "all" }) {
                 ) : (
                   <div className="tm-mobile-card">
                     <div className="tm-candidate__name">Belum ada kandidat</div>
-                    <div className="tm-candidate__email">
-                      Data kandidat akan muncul di sini setelah ada pendaftar.
-                    </div>
+                    <div className="tm-candidate__email">Data kandidat akan muncul di sini setelah ada pendaftar.</div>
                   </div>
                 )}
               </div>

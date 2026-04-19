@@ -87,21 +87,41 @@ class TalentController extends Controller
                     ],
                 ],
                 'academic' => [
-                    'university' => $profile->asal_kampus,
-                    'major'      => $profile->prodi,
-                    'ipk'        => $profile->ipk ?? '0.00',
-                    'graduation' => $profile->tahun_lulus ?? '-',
-                ],
-                'assessment' => [
-                    'score'   => $application->test_score ?? 0,
-                    'summary' => 'Kandidat memiliki potensi teknis yang stabil.',
-                    'date'    => $application->created_at->format('d M Y'),
-                ],
-                'documents' => [
-                    'cv'        => $profile->cv_path ? url('storage/' . $profile->cv_path) : null,
-                    'portfolio' => $profile->portfolio_url,
-                    'ktp'       => $profile->ktp_path ? url('storage/' . $profile->ktp_path) : null,
-                ],
+    'university' => $profile->universitas  ?? '-',
+    'major'      => $profile->jurusan      ?? '-',
+    'degree'     => $profile->jenjang      ?? '-',
+    'ipk'        => $profile->ipk          ?? '0.00',
+    'year_start' => $profile->tahun_masuk  ?? '-',
+    'graduation' => $profile->tahun_lulus  ?? '-',
+],
+'assessment' => [
+    'score'   => $profile->skor_pretest    ?? 0,   // ← fix: bukan pretest_score
+    'date'    => $application->created_at->format('d M Y'),
+    'summary' => ($profile->skor_pretest ?? 0) > 0
+                    ? 'Kandidat telah menyelesaikan asesmen online.'
+                    : 'Kandidat belum menyelesaikan asesmen.',
+    'finished_at' => $profile->test_finished_at
+                        ? \Carbon\Carbon::parse($profile->test_finished_at)->format('d M Y H:i')
+                        : null,
+],
+'documents' => [
+    'cv'                => $profile->cv_pdf
+                            ? asset('storage/' . $profile->cv_pdf) : null,
+    'portfolio'         => $profile->portofolio_pdf
+                            ? asset('storage/' . $profile->portofolio_pdf) : null,
+    'ktp'               => $profile->ktp_pdf
+                            ? asset('storage/' . $profile->ktp_pdf) : null,
+    'transkrip'         => $profile->transkrip_pdf
+                            ? asset('storage/' . $profile->transkrip_pdf) : null,
+    'surat_rekomendasi' => $profile->surat_rekomendasi_pdf
+                            ? asset('storage/' . $profile->surat_rekomendasi_pdf) : null,
+    'ktm'               => $profile->ktm_pdf
+                            ? asset('storage/' . $profile->ktm_pdf) : null,
+],
+
+// Pengalaman & lisensi belum ada kolomnya → kirim array kosong dulu
+'experience' => [],
+'licenses'   => [],
             ],
         ]);
     }

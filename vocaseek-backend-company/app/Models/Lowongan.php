@@ -13,13 +13,25 @@ class Lowongan extends Model
 
     protected $fillable = [
         'company_profile_id',
-        'judul_posisi',           // ✅ sesuai DB (bukan judul_pekerjaan)
+        'judul_pekerjaan',
+        'kategori_pekerjaan',
+        'tipe_pekerjaan',
         'deskripsi_pekerjaan',
         'persyaratan',
         'lokasi',
-        'tipe_magang',            // ✅ sesuai DB (bukan tipe_pekerjaan)
-        'gaji_per_bulan',         // ✅ sesuai DB (bukan gaji_min/gaji_max)
-        'status',                 // nilai: ACTIVE atau CLOSED
+        'pengaturan_kerja',
+        'gaji_min',
+        'gaji_max',
+        'tgl_tutup_lamaran',
+        'tgl_mulai_kerja',
+        'status',
+    ];
+
+    protected $casts = [
+        'gaji_min'          => 'decimal:2',
+        'gaji_max'          => 'decimal:2',
+        'tgl_tutup_lamaran' => 'date',
+        'tgl_mulai_kerja'   => 'date',
     ];
 
     public function companyProfile()

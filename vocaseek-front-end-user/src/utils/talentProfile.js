@@ -76,40 +76,44 @@ export function buildTalentDocument(fileUrl, fallbackLabel) {
 }
 
 export function mapTalentDetailPayload(rawItem = {}) {
-  // ─── Normalise nested struktur dari berbagai format response backend ──────
+  // ─── Cari objek user & profile dari berbagai kemungkinan struktur backend ───
   const user =
     rawItem?.user ||
     rawItem?.intern ||
     rawItem?.candidate ||
     rawItem?.data?.user ||
+    rawItem?.data?.intern ||
     {};
 
   const profile =
     user?.intern_profile ||
     user?.internProfile ||
+    user?.profile ||
     rawItem?.intern_profile ||
     rawItem?.internProfile ||
     rawItem?.profile ||
     rawItem?.data?.profile ||
     rawItem?.data?.intern_profile ||
-    rawItem?.data?.internProfile ||
     {};
 
-  // ─── Data Pribadi ─────────────────────────────────────────────────────────
+  // ─── Data Pribadi ───────────────────────────────────────────────────────────
   const name = pickFirstValue(
     rawItem?.nama,
     rawItem?.name,
+    rawItem?.full_name,
     user?.nama,
     user?.name,
-    profile?.nama,
+    user?.full_name,
     "Talent",
   );
+
   const email = pickFirstValue(
     rawItem?.email,
     user?.email,
     profile?.email,
     "-",
   );
+
   const phone = pickFirstValue(
     rawItem?.notelp,
     rawItem?.phone,
@@ -118,11 +122,14 @@ export function mapTalentDetailPayload(rawItem = {}) {
     rawItem?.nomor_hp,
     user?.notelp,
     user?.phone,
+    user?.no_hp,
     profile?.notelp,
     profile?.phone,
     profile?.phone_number,
+    profile?.no_hp,
     "-",
   );
+
   const about = pickFirstValue(
     rawItem?.tentang_saya,
     rawItem?.biodata,
@@ -134,7 +141,10 @@ export function mapTalentDetailPayload(rawItem = {}) {
     profile?.bio,
     profile?.about_me,
     profile?.about,
+    user?.tentang_saya,
+    user?.bio,
   );
+
   const photo = pickFirstValue(
     rawItem?.foto,
     rawItem?.photo,
@@ -151,15 +161,21 @@ export function mapTalentDetailPayload(rawItem = {}) {
     user?.foto,
     user?.photo,
     user?.avatar,
+    user?.avatar_url,
   );
+
   const gender = pickFirstValue(
     rawItem?.jenis_kelamin,
     rawItem?.gender,
     rawItem?.jenisKelamin,
     profile?.jenis_kelamin,
     profile?.gender,
+    profile?.jenisKelamin,
+    user?.jenis_kelamin,
+    user?.gender,
     "-",
   );
+
   const birthPlace = pickFirstValue(
     rawItem?.tempat_lahir,
     rawItem?.place_of_birth,
@@ -167,8 +183,10 @@ export function mapTalentDetailPayload(rawItem = {}) {
     profile?.tempat_lahir,
     profile?.place_of_birth,
     profile?.birth_place,
+    user?.tempat_lahir,
     "-",
   );
+
   const birthDate = pickFirstValue(
     rawItem?.tanggal_lahir,
     rawItem?.date_of_birth,
@@ -176,7 +194,9 @@ export function mapTalentDetailPayload(rawItem = {}) {
     profile?.tanggal_lahir,
     profile?.date_of_birth,
     profile?.birth_date,
+    user?.tanggal_lahir,
   );
+
   const address = buildTalentAddress({
     detail_alamat: pickFirstValue(
       rawItem?.detail_alamat,
@@ -189,6 +209,8 @@ export function mapTalentDetailPayload(rawItem = {}) {
       profile?.alamat_domisili,
       profile?.address,
       profile?.address_detail,
+      user?.alamat,
+      user?.address,
     ),
     kabupaten: pickFirstValue(
       rawItem?.kabupaten,
@@ -197,6 +219,8 @@ export function mapTalentDetailPayload(rawItem = {}) {
       profile?.kabupaten,
       profile?.kota,
       profile?.city,
+      user?.kabupaten,
+      user?.kota,
     ),
     provinsi: pickFirstValue(
       rawItem?.provinsi,
@@ -205,86 +229,118 @@ export function mapTalentDetailPayload(rawItem = {}) {
       profile?.provinsi,
       profile?.province,
       profile?.state,
+      user?.provinsi,
+      user?.province,
     ),
   });
+
   const linkedin = pickFirstValue(
     rawItem?.linkedin,
     rawItem?.linkedin_url,
     profile?.linkedin,
     profile?.linkedin_url,
+    user?.linkedin,
+    user?.linkedin_url,
   );
+
   const instagram = pickFirstValue(
     rawItem?.instagram,
     rawItem?.instagram_url,
     profile?.instagram,
     profile?.instagram_url,
+    user?.instagram,
+    user?.instagram_url,
   );
 
-  // ─── Data Akademik & Posisi ───────────────────────────────────────────────
+  // ─── Data Pekerjaan / Posisi ────────────────────────────────────────────────
   const position = pickFirstValue(
     rawItem?.posisi,
     rawItem?.position,
     rawItem?.job_title,
     rawItem?.lowongan?.judul_posisi,
     rawItem?.job?.judul_posisi,
+    rawItem?.lowongan?.title,
+    rawItem?.job?.title,
     "-",
   );
+
+  // ─── Data Akademik ──────────────────────────────────────────────────────────
   const university = pickFirstValue(
     rawItem?.universitas,
     rawItem?.university,
     rawItem?.campus,
+    rawItem?.perguruan_tinggi,
     profile?.universitas,
     profile?.university,
     profile?.campus,
+    profile?.perguruan_tinggi,
+    user?.universitas,
+    user?.university,
     "-",
   );
+
   const major = pickFirstValue(
     rawItem?.jurusan,
     rawItem?.major,
     rawItem?.program_studi,
+    rawItem?.prodi,
     profile?.jurusan,
     profile?.major,
     profile?.program_studi,
+    profile?.prodi,
+    user?.jurusan,
+    user?.major,
     "-",
   );
+
   const ipk = pickFirstValue(
     rawItem?.ipk,
     rawItem?.gpa,
     profile?.ipk,
     profile?.gpa,
+    user?.ipk,
   );
+
+  const semester = pickFirstValue(
+    rawItem?.semester,
+    profile?.semester,
+    user?.semester,
+  );
+
   const registeredAt = pickFirstValue(
     rawItem?.created_at,
     rawItem?.registered_at,
     rawItem?.tanggal_daftar,
     user?.created_at,
   );
+
+  // ─── Pengalaman, Sertifikasi, Skill ────────────────────────────────────────
   const experiences = normalizeList(
-  rawItem?.pengalaman_kerja ||      // ← key dari backend AdminTalentController
-  rawItem?.pengalaman ||
-  rawItem?.experiences ||
-  rawItem?.work_experiences ||
-  profile?.pengalaman_kerja ||
-  profile?.pengalaman ||
-  profile?.experiences,
-);
-const certifications = normalizeList(
-  rawItem?.lisensi_keahlian ||      // ← key dari backend AdminTalentController
-  rawItem?.sertifikasi ||
-  rawItem?.certifications ||
-  rawItem?.licenses ||
-  profile?.lisensi_keahlian ||
-  profile?.sertifikasi ||
-  profile?.certifications,
-);
-  const skills = normalizeList(
-    rawItem?.skills ||
-    rawItem?.keahlian ||
-    profile?.skills ||
-    profile?.keahlian,
+    rawItem?.pengalaman ||
+      rawItem?.experiences ||
+      rawItem?.work_experiences ||
+      profile?.pengalaman ||
+      profile?.experiences,
   );
 
-  // ─── Dokumen ─────────────────────────────────────────────────────────────
+  const certifications = normalizeList(
+    rawItem?.sertifikasi ||
+      rawItem?.certifications ||
+      rawItem?.licenses ||
+      profile?.sertifikasi ||
+      profile?.certifications,
+  );
+
+  const skills = normalizeList(
+    rawItem?.skills ||
+      rawItem?.keahlian ||
+      profile?.skills ||
+      profile?.keahlian ||
+      user?.skills,
+  );
+
+  // ─── Dokumen ────────────────────────────────────────────────────────────────
+  // Cari URL dokumen dari rawItem, profile, maupun user langsung
   const cvUrl = pickFirstValue(
     rawItem?.cv,
     rawItem?.cv_url,
@@ -292,51 +348,58 @@ const certifications = normalizeList(
     profile?.cv,
     profile?.cv_url,
     profile?.cv_pdf,
+    user?.cv,
     user?.cv_pdf,
   );
+
   const portfolioUrl = pickFirstValue(
     rawItem?.portofolio,
     rawItem?.portfolio,
     rawItem?.portfolio_url,
     rawItem?.portofolio_pdf,
     profile?.portofolio_pdf,
-    profile?.portfolio_url,
     profile?.portofolio,
+    profile?.portfolio_url,
     user?.portofolio_pdf,
+    user?.portofolio,
   );
+
   const transcriptUrl = pickFirstValue(
     rawItem?.transkrip,
     rawItem?.transcript,
     rawItem?.transcript_url,
     rawItem?.transkrip_pdf,
     profile?.transkrip_pdf,
-    profile?.transcript,
-    profile?.transcript_url,
     profile?.transkrip,
+    profile?.transcript_url,
     user?.transkrip_pdf,
+    user?.transkrip,
   );
+
   const identityUrl = pickFirstValue(
     rawItem?.ktp,
-    rawItem?.ktp_pdf,
     rawItem?.identity,
     rawItem?.identity_url,
+    rawItem?.ktp_pdf,
     profile?.ktp_pdf,
     profile?.ktp,
-    profile?.identity,
     profile?.identity_url,
     user?.ktp_pdf,
+    user?.ktp,
   );
+
   const recommendationUrl = pickFirstValue(
     rawItem?.surat_rekomendasi,
-    rawItem?.surat_rekomendasi_pdf,
     rawItem?.recommendation,
     rawItem?.recommendation_url,
+    rawItem?.surat_rekomendasi_pdf,
     profile?.surat_rekomendasi_pdf,
     profile?.surat_rekomendasi,
-    profile?.recommendation,
     profile?.recommendation_url,
     user?.surat_rekomendasi_pdf,
+    user?.surat_rekomendasi,
   );
+
   const ktmUrl = pickFirstValue(
     rawItem?.ktm,
     rawItem?.ktm_pdf,
@@ -344,18 +407,19 @@ const certifications = normalizeList(
     profile?.ktm_pdf,
     profile?.ktm,
     user?.ktm_pdf,
+    user?.ktm,
   );
 
-  // ─── Assessment ───────────────────────────────────────────────────────────
+  // ─── Assessment / Review Jawaban ────────────────────────────────────────────
   const testStartedAt = pickFirstValue(
     rawItem?.test_started_at,
     rawItem?.assessment_started_at,
     rawItem?.started_at,
     profile?.test_started_at,
     profile?.assessment_started_at,
-    rawItem?.assessment?.started_at,
-    rawItem?.test_result?.started_at,
+    user?.test_started_at,
   );
+
   const testFinishedAt = pickFirstValue(
     rawItem?.test_finished_at,
     rawItem?.assessment_finished_at,
@@ -363,49 +427,51 @@ const certifications = normalizeList(
     rawItem?.completed_at,
     profile?.test_finished_at,
     profile?.assessment_finished_at,
-    rawItem?.assessment?.finished_at,
-    rawItem?.test_result?.finished_at,
+    user?.test_finished_at,
   );
+
   const assessmentScore = pickFirstValue(
     rawItem?.score,
     rawItem?.assessment_score,
     rawItem?.test_score,
     rawItem?.hasil_test,
     rawItem?.nilai,
-    rawItem?.assessment?.score,
-    rawItem?.test_result?.score,
+    profile?.score,
     profile?.assessment_score,
     profile?.test_score,
-  );
-  const assessmentAnswers = normalizeList(
-    rawItem?.answers ||
-    rawItem?.jawaban ||
-    rawItem?.assessment?.answers ||
-    rawItem?.test_result?.answers,
-  );
-  const assessmentQuestions = normalizeList(
-    rawItem?.questions ||
-    rawItem?.soal ||
-    rawItem?.assessment?.questions ||
-    rawItem?.test_result?.questions,
-  );
-  const hasAssessment = Boolean(
-    testStartedAt ||
-    testFinishedAt ||
-    assessmentScore ||
-    rawItem?.assessment ||
-    rawItem?.test_result ||
-    assessmentAnswers.length > 0,
+    user?.score,
+    user?.assessment_score,
   );
 
-  // ─── Return ───────────────────────────────────────────────────────────────
+  // ✅ Tambah: tangkap array jawaban jika backend mengirimnya
+  const assessmentAnswers = normalizeList(
+    rawItem?.jawaban ||
+      rawItem?.answers ||
+      rawItem?.assessment_answers ||
+      rawItem?.test_answers ||
+      rawItem?.assessment?.answers ||
+      rawItem?.test_result?.answers ||
+      profile?.jawaban ||
+      profile?.answers,
+  );
+
+  const hasAssessment = Boolean(
+    testStartedAt ||
+      testFinishedAt ||
+      assessmentScore ||
+      assessmentAnswers.length > 0 ||
+      rawItem?.assessment ||
+      rawItem?.test_result,
+  );
+
+  // ─── Return ─────────────────────────────────────────────────────────────────
   return {
     id: String(
       rawItem?.user_id ||
-      rawItem?.id ||
-      user?.user_id ||
-      user?.id ||
-      "",
+        rawItem?.id ||
+        user?.user_id ||
+        user?.id ||
+        "",
     ),
     name,
     email,
@@ -423,11 +489,12 @@ const certifications = normalizeList(
     university,
     major,
     ipk,
+    semester,
     registeredAt: formatTalentDate(registeredAt),
     status: normalizeTalentStatus(
       rawItem?.status ||
-      rawItem?.application_status ||
-      rawItem?.review_status,
+        rawItem?.application_status ||
+        rawItem?.review_status,
     ),
     experiences,
     certifications,
@@ -438,22 +505,23 @@ const certifications = normalizeList(
       identity:       buildTalentDocument(identityUrl,       "KTP / Identitas Diri"),
       recommendation: buildTalentDocument(recommendationUrl, "Surat Rekomendasi"),
       transcript:     buildTalentDocument(transcriptUrl,     "Transkrip Nilai"),
-      ktm:            buildTalentDocument(ktmUrl,            "Kartu Tanda Mahasiswa (KTM)"),
+      ktm:            buildTalentDocument(ktmUrl,            "Kartu Tanda Mahasiswa"),
     },
     assessment: {
       available: hasAssessment,
-      score:     assessmentScore || null,
-      answers:   assessmentAnswers,
-      questions: assessmentQuestions,
+      score: assessmentScore || "-",
+      answers: assessmentAnswers,
+      startedAt: formatTalentDate(testStartedAt),
+      finishedAt: formatTalentDate(testFinishedAt),
       subtitle: testFinishedAt
         ? `Kandidat menyelesaikan tes pada ${formatTalentDate(testFinishedAt)}`
         : testStartedAt
           ? `Tes dimulai pada ${formatTalentDate(testStartedAt)}`
           : assessmentScore
-            ? `Skor assessment tercatat: ${assessmentScore}`
+            ? `Skor assessment: ${assessmentScore}`
             : "Belum ada hasil assessment",
       summary: hasAssessment
-        ? "Data online assessment sudah tersedia di backend dan dapat ditinjau lebih lanjut."
+        ? "Data online assessment sudah tersedia dan dapat ditinjau."
         : "Belum ada hasil assessment untuk ditampilkan.",
     },
   };

@@ -1,17 +1,15 @@
 import api from "../lib/api";
+import apiCompany from "../lib/apiCompany";
 
 const COMPANY_JOBS_ENDPOINT = "/company/jobs";
 const PUBLIC_JOBS_ENDPOINT = "/popular-vacancies";
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
 function formatDate(value) {
   if (!value) return "-";
-
   const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
+  if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -21,51 +19,48 @@ function formatDate(value) {
 
 function formatSalary(value) {
   if (!value) return "Insentif tidak disebutkan";
-
   const formattedValue = String(value)
     .split("-")
     .map((item) => {
       const numberOnly = item.replace(/[^\d]/g, "");
       if (!numberOnly) return item.trim();
-
       return Number(numberOnly).toLocaleString("id-ID");
     })
     .join(" - ");
-
   return formattedValue;
+}
+
+function formatSalaryRange(min, max) {
+  if (!min && !max) return "Insentif tidak disebutkan";
+  if (min && max)
+    return `Rp ${Number(min).toLocaleString("id-ID")} - Rp ${Number(max).toLocaleString("id-ID")}`;
+  if (min) return `Rp ${Number(min).toLocaleString("id-ID")}`;
+  return `Rp ${Number(max).toLocaleString("id-ID")}`;
 }
 
 function formatRelativeTime(value) {
   if (!value) return "Baru saja";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Baru saja";
-
   const diffMs = Date.now() - date.getTime();
   const diffMinutes = Math.max(0, Math.floor(diffMs / 60000));
-
   if (diffMinutes < 60) return `${Math.max(diffMinutes, 1)} menit lalu`;
-
   const diffHours = Math.floor(diffMinutes / 60);
   if (diffHours < 24) return `${diffHours} jam lalu`;
-
   const diffDays = Math.floor(diffHours / 24);
   return `${diffDays} hari lalu`;
 }
 
 function normalizeWorkSetting(value) {
   const normalized = String(value || "").toLowerCase();
-
   if (normalized === "remote") return "Remote";
   if (normalized === "hybrid") return "Hybrid";
   if (normalized === "onsite") return "WFO";
-
   return value || "WFO";
 }
 
 function normalizeStatus(value) {
   const normalized = String(value || "").toUpperCase();
-
   if (normalized === "CLOSED") return "Closed";
   if (normalized === "DRAFT") return "Draft";
   return "Open";
@@ -76,14 +71,8 @@ function getJobTag(title) {
     .trim()
     .split(/\s+/)
     .filter(Boolean);
-
   if (words.length === 0) return "JB";
-
-  return words
-    .slice(0, 2)
-    .map((word) => word[0])
-    .join("")
-    .toUpperCase();
+  return words.slice(0, 2).map((word) => word[0]).join("").toUpperCase();
 }
 
 function splitLines(value) {
@@ -93,36 +82,44 @@ function splitLines(value) {
     .filter(Boolean);
 }
 
+// ─── API Calls ────────────────────────────────────────────────────────────────
+
+// Public — tanpa auth, selalu ke backend-company (8003)
+export function getPublicJobs() {
+  return apiCompany.get(PUBLIC_JOBS_ENDPOINT);
+}
+
+// Company (butuh auth) — semua ke backend-company (8003)
 export function getCompanyJobs() {
-  return api.get(COMPANY_JOBS_ENDPOINT);
+  return apiCompany.get(COMPANY_JOBS_ENDPOINT);
 }
 
 export function createCompanyJob(payload) {
-  return api.post(COMPANY_JOBS_ENDPOINT, payload);
-}
-
-export function deleteCompanyJob(id) {
-  return api.delete(`${COMPANY_JOBS_ENDPOINT}/${id}`);
+  return apiCompany.post(COMPANY_JOBS_ENDPOINT, payload);
 }
 
 export function updateCompanyJob(id, payload) {
-  return api.put(`${COMPANY_JOBS_ENDPOINT}/${id}`, payload);
+  return apiCompany.put(`${COMPANY_JOBS_ENDPOINT}/${id}`, payload);
+}
+
+export function deleteCompanyJob(id) {
+  return apiCompany.delete(`${COMPANY_JOBS_ENDPOINT}/${id}`);
 }
 
 export function getCompanyJobApplicants(jobId) {
-  return api.get(`/company/jobs/${jobId}/applicants`);
+  return apiCompany.get(`/company/jobs/${jobId}/applicants`);
 }
 
 export function updateCompanyApplicationStatus(id, payload) {
-  return api.put(`/company/applications/${id}/status`, payload);
+  return apiCompany.put(`/company/applications/${id}/status`, payload);
 }
 
-export function getPublicJobs() {
-  return api.get(PUBLIC_JOBS_ENDPOINT);
-}
+// ─── Mappers ──────────────────────────────────────────────────────────────────
 
 export function mapCompanyJobRow(job) {
-  const title = job?.judul_posisi || job?.title || "Lowongan";
+  // Support field baru (judul_pekerjaan) dan lama (judul_posisi)
+  const title =
+    job?.judul_pekerjaan || job?.judul_posisi || job?.title || "Lowongan";
   const status = normalizeStatus(job?.status);
 
   return {
@@ -133,8 +130,8 @@ export function mapCompanyJobRow(job) {
     tagBg: "job-postings__tag-bg--fe",
     tagText: "job-postings__tag-text--fe",
     title,
-    dept: job?.kategori_pekerjaan || job?.kategori || "Lowongan",
-    team: normalizeWorkSetting(job?.tipe_magang),
+    dept: job?.kategori_pekerjaan || job?.kategori || "Umum",
+    team: normalizeWorkSetting(job?.pengaturan_kerja || job?.tipe_magang),
     date: formatDate(job?.created_at),
     status,
     applicantsType: "none",
@@ -145,7 +142,9 @@ export function mapCompanyJobRow(job) {
 }
 
 export function mapPublicJob(job) {
-  const title = job?.judul_posisi || job?.title || "Lowongan";
+  // Support field baru dan lama
+  const title =
+    job?.judul_pekerjaan || job?.judul_posisi || job?.title || "Lowongan";
   const companyProfile = job?.company_profile || job?.companyProfile || {};
   const companyName =
     companyProfile?.nama_perusahaan ||
@@ -158,32 +157,45 @@ export function mapPublicJob(job) {
     job?.lokasi ||
     "Lokasi belum diisi";
 
+  // Gaji: pakai gaji_min/gaji_max (field baru) atau gaji_per_bulan (field lama)
+  const salaryDisplay =
+    job?.gaji_min || job?.gaji_max
+      ? formatSalaryRange(job.gaji_min, job.gaji_max)
+      : formatSalary(job?.gaji_per_bulan);
+
   return {
     id: job?.id,
     title,
     company: companyName,
     location: job?.lokasi || companyAddress,
-    type: "Magang",
-    duration: formatSalary(job?.gaji_per_bulan),
-    work: normalizeWorkSetting(job?.tipe_magang),
+    type: job?.tipe_pekerjaan || job?.tipe_magang || "Magang",
+    duration: salaryDisplay,
+    work: normalizeWorkSetting(job?.pengaturan_kerja || job?.tipe_magang),
     postedAt: formatRelativeTime(job?.created_at),
     description:
       job?.deskripsi_pekerjaan ||
       "Deskripsi lowongan akan ditampilkan setelah perusahaan melengkapinya.",
     qualifications: splitLines(job?.persyaratan),
-    benefits: job?.gaji_per_bulan
-      ? [`Insentif: ${formatSalary(job.gaji_per_bulan)}`]
-      : [],
+    benefits:
+      job?.gaji_min || job?.gaji_max
+        ? [`Insentif: ${formatSalaryRange(job.gaji_min, job.gaji_max)}`]
+        : job?.gaji_per_bulan
+        ? [`Insentif: ${formatSalary(job.gaji_per_bulan)}`]
+        : [],
     education: null,
     documents: null,
-    dates: null,
+    dates: {
+      deadline: formatDate(job?.tgl_tutup_lamaran),
+      start: formatDate(job?.tgl_mulai_kerja),
+    },
     companyProfile: {
       name: companyName,
       industry:
         companyProfile?.industri ||
         companyProfile?.sektor_industri ||
         "Industri belum diisi",
-      size: companyProfile?.ukuran_perusahaan || "Ukuran perusahaan belum diisi",
+      size:
+        companyProfile?.ukuran_perusahaan || "Ukuran perusahaan belum diisi",
       website: companyProfile?.website_url || companyProfile?.website || "",
       description:
         companyProfile?.deskripsi ||
@@ -191,7 +203,8 @@ export function mapPublicJob(job) {
       address: companyAddress,
       phone: companyProfile?.notelp || "",
       status: companyProfile?.status_mitra || "",
-      logoUrl: companyProfile?.logo_url || companyProfile?.logo_perusahaan || "",
+      logoUrl:
+        companyProfile?.logo_perusahaan || companyProfile?.logo_url || "",
     },
     raw: job,
   };

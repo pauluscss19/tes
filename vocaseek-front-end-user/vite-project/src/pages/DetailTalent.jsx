@@ -1,4 +1,4 @@
-code = '''import React from "react";
+code = '''Import react from "react";
 import "../styles/DetailTalent.css";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";

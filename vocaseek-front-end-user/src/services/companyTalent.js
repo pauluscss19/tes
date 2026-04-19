@@ -1,7 +1,9 @@
 import api from "../lib/api";
 
 const COMPANY_TALENT_BASE = "/company/talent";
-const COMPANY_BASE = "/company"; // ← tambahkan ini
+const COMPANY_BASE = "/company";
+
+// ─── Admin Mitra: Kandidat ────────────────────────────────────────────────────
 
 export function getCompanyCandidates() {
   return api.get(`${COMPANY_TALENT_BASE}/candidates`);
@@ -23,7 +25,17 @@ export function getSelectedCompanyCandidates() {
   return api.get(`${COMPANY_TALENT_BASE}/selected`);
 }
 
-// ← tambahkan ini
+// ─── Admin Mitra: Dashboard ───────────────────────────────────────────────────
+
 export function getCompanyDashboard() {
   return api.get(`${COMPANY_BASE}/dashboard`);
+}
+
+// ─── User (Intern): Status Lamaran ───────────────────────────────────────────
+// ⚠️  Sesuaikan endpoint di bawah dengan route yang tersedia di backend
+
+// services/companyTalent.js
+
+export function getMyApplicationStatus() {
+  return api.get("/intern/applications/latest");
 }

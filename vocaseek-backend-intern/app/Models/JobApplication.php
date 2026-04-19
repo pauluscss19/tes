@@ -6,13 +6,18 @@ use Illuminate\Database\Eloquent\Model;
 
 class JobApplication extends Model
 {
-    protected $table = 'job_applications';
-    protected $primaryKey = 'application_id';
-    protected $fillable = ['user_id', 'job_id', 'motivation', 'status'];
+    protected $primaryKey = 'application_id'; // ✅ wajib ada
 
-    // Relasi balik ke Job agar bisa ambil judul lowongan untuk menu "Status Lamaran"
-    public function job()
+    protected $fillable = [
+        'user_id',
+        'job_id',
+        'motivation',
+        'status',
+    ];
+
+    // ✅ Relasi ke tabel lowongans
+    public function lowongan()
     {
-        return $this->belongsTo(Job::class, 'job_id');
+        return $this->belongsTo(Lowongan::class, 'job_id', 'id');
     }
 }

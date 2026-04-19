@@ -1,8 +1,22 @@
 import axios from "axios";
-import { getAccessToken } from "../utils/authStorage";
+import { getAccessToken, getUserRole } from "../utils/authStorage";
+
+function getBaseURL() {
+  const role = getUserRole()?.toLowerCase();
+
+  if (role?.includes("company") || role?.includes("mitra")) {
+    return import.meta.env.VITE_API_COMPANY_URL;
+  }
+
+  // ✅ Tambahkan ini
+  if (role?.includes("intern")) {
+    return import.meta.env.VITE_API_INTERN_URL;
+  }
+
+  return import.meta.env.VITE_API_BASE_URL;
+}
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     Accept: "application/json",
   },
@@ -10,14 +24,13 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = getAccessToken();
+  config.baseURL = getBaseURL();
 
+  const token = getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Jika payload adalah FormData, hapus Content-Type
-  // agar browser otomatis set multipart/form-data + boundary yang benar
   if (config.data instanceof FormData) {
     delete config.headers["Content-Type"];
   } else {

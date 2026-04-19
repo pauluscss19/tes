@@ -9,9 +9,12 @@ export function getInternTestQuestions() {
 }
 
 export function updateInternProfile(payload) {
-  if (payload instanceof FormData) {
-    payload.append("_method", "PUT");
-  }
+  return api.post("/intern/update-profile", payload, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
 
   return api.post("/intern/update-profile", payload, {
     headers: {
@@ -35,3 +38,15 @@ export function applyInternJob(payload) {
 export function getInternApplications() {
   return api.get("/intern/applications");
 }
+
+// ── Pengalaman Kerja ─────────────────────────────────────────
+export const getExperiences   = ()         => api.get("/intern/experiences");
+export const addExperience    = (data)     => api.post("/intern/experiences", data);
+export const updateExperience = (id, data) => api.put(`/intern/experiences/${id}`, data);
+export const deleteExperience = (id)       => api.delete(`/intern/experiences/${id}`);
+
+// ── Lisensi & Sertifikasi ────────────────────────────────────
+export const getLicenses   = ()         => api.get("/intern/licenses");
+export const addLicense    = (data)     => api.post("/intern/licenses", data);
+export const updateLicense = (id, data) => api.put(`/intern/licenses/${id}`, data);
+export const deleteLicense = (id)       => api.delete(`/intern/licenses/${id}`);  

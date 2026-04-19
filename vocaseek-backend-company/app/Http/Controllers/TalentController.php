@@ -43,9 +43,9 @@ class TalentController extends Controller
         ];
 
         $tableData = $applications->map(fn($app) => [
-            'id'           => $app->id,
-            'name'         => $app->user->nama          ?? 'N/A',
-            'email'        => $app->user->email         ?? '-',
+            'id'           => $app->application_id,
+            'name'         => $app->user->nama              ?? 'N/A',
+            'email'        => $app->user->email             ?? '-',
             'position'     => $app->lowongan->judul_posisi
                               ?? $app->lowongan->judul_pekerjaan
                               ?? 'N/A',
@@ -77,7 +77,7 @@ class TalentController extends Controller
             'status' => 'success',
             'data'   => [
                 'personal' => [
-                    'name'    => $user->nama ?? '-',
+                    'name'    => $user->nama            ?? '-',
                     'role'    => $application->lowongan->judul_posisi
                                  ?? $application->lowongan->judul_pekerjaan
                                  ?? 'Candidate',
@@ -109,22 +109,22 @@ class TalentController extends Controller
                     'graduation' => $profile->tahun_lulus ?? '-',
                 ],
                 'assessment' => [
-                    'score'       => $profile->skor_pretest ?? 0,       // ← fix
+                    'score'       => $profile->skor_pretest ?? 0,
+                    'date'        => $application->created_at->format('d M Y'),
+                    'summary'     => ($profile->skor_pretest ?? 0) > 0
+                                        ? 'Kandidat telah menyelesaikan asesmen online.'
+                                        : 'Kandidat belum menyelesaikan asesmen.',
                     'finished_at' => $profile->test_finished_at
                                         ? \Carbon\Carbon::parse($profile->test_finished_at)
                                             ->format('d M Y H:i')
                                         : null,
-                    'date'        => $application->created_at->format('d M Y'),
-                    'summary'     => ($profile->skor_pretest ?? 0) > 0  // ← fix
-                                        ? 'Kandidat telah menyelesaikan asesmen online.'
-                                        : 'Kandidat belum menyelesaikan asesmen.',
                 ],
                 'documents' => [
                     'cv'                => $profile->cv_pdf
                                             ? asset('storage/' . $profile->cv_pdf) : null,
                     'portfolio'         => $profile->portofolio_pdf
                                             ? asset('storage/' . $profile->portofolio_pdf) : null,
-                    'ktp'               => $profile->ktp_pdf              // ← fix (was ktp_path)
+                    'ktp'               => $profile->ktp_pdf
                                             ? asset('storage/' . $profile->ktp_pdf) : null,
                     'transkrip'         => $profile->transkrip_pdf
                                             ? asset('storage/' . $profile->transkrip_pdf) : null,
@@ -133,17 +133,10 @@ class TalentController extends Controller
                     'ktm'               => $profile->ktm_pdf
                                             ? asset('storage/' . $profile->ktm_pdf) : null,
                 ],
-                'application' => [
-                    'id'         => $application->id,
-                    'status'     => $application->status,
-                    'motivation' => $application->motivation ?? '-',
-                    'position'   => $application->lowongan->judul_posisi
-                                    ?? $application->lowongan->judul_pekerjaan
-                                    ?? '-',
-                    'applied_at' => $application->created_at->format('d M Y'),
-                ],
-            ],
-        ]);
+                'experience' => [],
+                'licenses'   => [],
+            ],  // ← tutup 'data'
+        ]);     // ← tutup response()->json()
     }
 
     public function storeManualCandidate(Request $request)
@@ -217,8 +210,8 @@ class TalentController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data' => $candidates->map(fn($app) => [
-                'id'       => $app->id,
+            'data'   => $candidates->map(fn($app) => [
+                'id'       => $app->application_id,
                 'name'     => $app->user->nama,
                 'position' => $app->lowongan->judul_posisi
                               ?? $app->lowongan->judul_pekerjaan,

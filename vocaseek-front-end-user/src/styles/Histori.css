@@ -801,3 +801,10 @@
     transform: translateY(0) translateX(0);
   }
 }
+.historiSyncLabel {
+  font-size: 12px;
+  color: #9ca3af;
+  align-self: flex-start;
+  margin-top: 4px;
+  font-style: italic;
+}

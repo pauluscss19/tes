@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class InternProfile extends Model
 {
     protected $table = 'intern_profiles';
-    protected $primaryKey = 'profile_id';
+    protected $primaryKey = 'intern_id';
+    public    $incrementing = true;        // ← TAMBAH INI
 
     protected $fillable = [
     'user_id',
