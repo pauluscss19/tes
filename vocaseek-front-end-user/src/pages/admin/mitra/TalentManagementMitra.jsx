@@ -32,50 +32,50 @@ import {
 } from "lucide-react";
 
 const STATUS_OPTIONS = [
-  { value: "ALL", label: "Semua Status" },
-  { value: "PENDING", label: "Pending" },
+  { value: "ALL",         label: "Semua Status" },
+  { value: "PENDING",     label: "Pending" },
   { value: "SHORTLISTED", label: "Shortlisted" },
-  { value: "INTERVIEWING", label: "Interviewing" },
-  { value: "OFFERED", label: "Offered" },
-  { value: "HIRED", label: "Hired" },
-  { value: "REJECTED", label: "Rejected" },
+  { value: "INTERVIEWING",label: "Interviewing" },
+  { value: "OFFERED",     label: "Offered" },
+  { value: "HIRED",       label: "Hired" },
+  { value: "REJECTED",    label: "Rejected" },
 ];
 
 const WORK_TYPE_OPTIONS = [
-  { value: "ALL", label: "Semua Tipe" },
-  { value: "Internship", label: "Internship" },
-  { value: "Full Time", label: "Full Time" },
+  { value: "ALL",         label: "Semua Tipe" },
+  { value: "Internship",  label: "Internship" },
+  { value: "Full Time",   label: "Full Time" },
 ];
 
 const POSITION_OPTIONS = [
-  { value: "ALL", label: "Semua Posisi" },
-  { value: "Mechanical Engineer", label: "Mechanical Engineer" },
-  { value: "UI/UX Designer", label: "UI/UX Designer" },
-  { value: "Frontend Developer", label: "Frontend Developer" },
-  { value: "DevOps Engineer", label: "DevOps Engineer" },
-  { value: "Project Manager", label: "Project Manager" },
-  { value: "DevOps Specialist", label: "DevOps Specialist" },
-  { value: "Frontend Engineer", label: "Frontend Engineer" },
-  { value: "Product Manager", label: "Product Manager" },
+  { value: "ALL",                   label: "Semua Posisi" },
+  { value: "Mechanical Engineer",   label: "Mechanical Engineer" },
+  { value: "UI/UX Designer",        label: "UI/UX Designer" },
+  { value: "Frontend Developer",    label: "Frontend Developer" },
+  { value: "DevOps Engineer",       label: "DevOps Engineer" },
+  { value: "Project Manager",       label: "Project Manager" },
+  { value: "DevOps Specialist",     label: "DevOps Specialist" },
+  { value: "Frontend Engineer",     label: "Frontend Engineer" },
+  { value: "Product Manager",       label: "Product Manager" },
 ];
 
 const ITEMS_PER_PAGE = 5;
 
+// ─── helpers ────────────────────────────────────────────────────────────────
+
 function extractCandidateCollection(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.data)) return payload.data.data;
-  if (Array.isArray(payload?.candidates)) return payload.candidates;
-  if (Array.isArray(payload?.talents)) return payload.talents;
+  if (Array.isArray(payload))               return payload;
+  if (Array.isArray(payload?.data))         return payload.data;
+  if (Array.isArray(payload?.data?.data))   return payload.data.data;
+  if (Array.isArray(payload?.candidates))   return payload.candidates;
+  if (Array.isArray(payload?.talents))      return payload.talents;
   return [];
 }
 
 function formatDate(value) {
   if (!value) return "-";
-
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-
   return date.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -85,49 +85,77 @@ function formatDate(value) {
 
 function normalizeCandidateStatus(value) {
   const normalized = String(value || "PENDING").toUpperCase();
-  const aliases = {
-    REVIEW: "PENDING",
-    ACCEPTED: "HIRED",
-  };
-
+  const aliases = { REVIEW: "PENDING", ACCEPTED: "HIRED" };
   return aliases[normalized] || normalized;
 }
 
+// ✅ REVISI UTAMA: baca field name/position/type/date_applied dari backend baru
 function mapCandidate(item, index) {
-  console.log("item.id:", item?.id);
-  console.log("item.application_id:", item?.application_id);
-  console.log("item.candidate_id:", item?.candidate_id);
-  console.log("FULL ITEM:", JSON.stringify(item));
-  console.log("RAW ITEM:", item);
-  const user = item?.user || item?.intern || item?.candidate || {};
+  const user    = item?.user || item?.intern || item?.candidate || {};
   const profile = user?.intern_profile || user?.internProfile || item?.intern_profile || {};
-  const name = user?.nama || item?.nama || item?.name || "Kandidat";
-  const status = normalizeCandidateStatus(item?.status || item?.candidate_status);
 
-  // ✅ rawId = integer asli dari backend (untuk URL dan API call)
+  // rawId = integer murni untuk URL & API call
   const rawId = item?.id ?? item?.application_id ?? user?.user_id ?? (index + 1);
 
-  // ✅ displayId = format KDT-022 hanya untuk tampilan di tabel
+  // displayId = KDT-001 hanya untuk tampilan di kolom ID tabel
   const displayId = `KDT-${String(rawId).padStart(3, "0")}`;
 
   return {
-    raw: item,
-    backendId: item?.id ?? item?.application_id ?? rawId,
-    id: displayId,          // ← hanya untuk tampilan di kolom ID
-    name,
-    email: user?.email || item?.email || "Email belum tersedia",
-    role:
-      item?.posisi ||
-      item?.position ||
-      item?.lowongan?.judul_posisi ||
-      item?.job?.judul_posisi ||
+    raw:        item,
+    backendId:  rawId,
+    id:         displayId,
+
+    // ✅ backend sekarang kirim field 'name' langsung
+    name:
+      item?.name       ||
+      user?.nama       ||
+      item?.nama       ||
       "Kandidat",
-    level: item?.level || profile?.jenjang || "Junior",
-    workType: item?.work_type || item?.tipe_pekerjaan || "Internship",
-    applyDate: formatDate(item?.created_at || item?.apply_date || item?.tanggal_daftar),
-    status,
-    image: profile?.foto || user?.foto || item?.foto || "/default-avatar.png",
-    link: `/admin/mitra/talent/${rawId}`,  // ✅ pakai rawId integer
+
+    // ✅ backend sekarang kirim field 'email' langsung
+    email:
+      item?.email      ||
+      user?.email      ||
+      "Email belum tersedia",
+
+    // ✅ backend sekarang kirim field 'position' langsung
+    role:
+      item?.position            ||
+      item?.posisi              ||
+      item?.lowongan?.judul_posisi ||
+      item?.job?.judul_posisi   ||
+      "Kandidat",
+
+    level:
+      item?.level      ||
+      profile?.jenjang ||
+      "Junior",
+
+    // ✅ backend sekarang kirim field 'type' langsung (bukan work_type)
+    workType:
+      item?.type            ||
+      item?.work_type       ||
+      item?.tipe_pekerjaan  ||
+      "Internship",
+
+    // ✅ backend sekarang kirim field 'date_applied' langsung
+    applyDate: formatDate(
+      item?.date_applied   ||
+      item?.created_at     ||
+      item?.apply_date     ||
+      item?.tanggal_daftar
+    ),
+
+    status: normalizeCandidateStatus(item?.status || item?.candidate_status),
+
+    image:
+      profile?.foto    ||
+      user?.foto       ||
+      item?.foto       ||
+      "/default-avatar.png",
+
+    // ✅ link selalu pakai integer rawId
+    link:    `/admin/mitra/talent/${rawId}`,
     selected: false,
   };
 }
@@ -136,21 +164,20 @@ function getStatusLabel(status) {
   return STATUS_OPTIONS.find((item) => item.value === status)?.label || status;
 }
 
+// ─── sub-components ──────────────────────────────────────────────────────────
+
 function StatCard({ title, value, subtitle, icon, iconWrapClass = "", extra = null }) {
   return (
     <div className="tm-stat-card">
       <div className="tm-stat-card__inner">
         <div>
           <div className="tm-stat-card__title">{title}</div>
-
           <div className="tm-stat-card__value-row">
             <div className="tm-stat-card__value">{value}</div>
             {extra}
           </div>
-
           <div className="tm-stat-card__subtitle">{subtitle}</div>
         </div>
-
         <div className={`tm-stat-card__icon ${iconWrapClass}`}>{icon}</div>
       </div>
     </div>
@@ -178,36 +205,36 @@ function CandidateRow({
   onViewDetail,
 }) {
   const statusMap = {
-    PENDING: "tm-badge--pending",
-    SHORTLISTED: "tm-badge--shortlisted",
-    REJECTED: "tm-badge--rejected",
+    PENDING:      "tm-badge--pending",
+    SHORTLISTED:  "tm-badge--shortlisted",
+    REJECTED:     "tm-badge--rejected",
     INTERVIEWING: "tm-badge--interviewing",
-    OFFERED: "tm-badge--offered",
-    HIRED: "tm-badge--hired",
+    OFFERED:      "tm-badge--offered",
+    HIRED:        "tm-badge--hired",
   };
 
   const levelMap = {
-    Senior: "tm-text-green",
+    Senior:      "tm-text-green",
     "Mid-Level": "tm-text-orange",
-    Junior: "tm-text-orange",
+    Junior:      "tm-text-orange",
   };
 
   const workTypeMap = {
-    Internship: "tm-badge--internship",
+    Internship:  "tm-badge--internship",
     "Full Time": "tm-badge--fulltime",
   };
 
   return (
-    <tr className={`tm-table__row ${onClick ? "tm-table__row--clickable" : ""}`} onClick={onClick}>
+    <tr
+      className={`tm-table__row ${onClick ? "tm-table__row--clickable" : ""}`}
+      onClick={onClick}
+    >
       <td className="tm-table__cell tm-table__cell--checkbox">
         <div className="tm-center">
           <input
             type="checkbox"
             checked={selected}
-            onChange={(e) => {
-              e.stopPropagation();
-              onToggleSelect?.();
-            }}
+            onChange={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
             onClick={(e) => e.stopPropagation()}
           />
         </div>
@@ -220,7 +247,6 @@ function CandidateRow({
           <div className="tm-candidate__avatar-wrap">
             <img src={image} alt={name} className="tm-candidate__avatar" />
           </div>
-
           <div>
             <div className="tm-candidate__name">{name}</div>
             <div className="tm-candidate__email">{email}</div>
@@ -230,17 +256,17 @@ function CandidateRow({
 
       <td className="tm-table__cell">
         <div className="tm-role">{role}</div>
-        <div className={`tm-role__level ${levelMap[level]}`}>{level}</div>
+        <div className={`tm-role__level ${levelMap[level] || ""}`}>{level}</div>
       </td>
 
       <td className="tm-table__cell">
-        <Badge className={workTypeMap[workType]}>{workType}</Badge>
+        <Badge className={workTypeMap[workType] || ""}>{workType}</Badge>
       </td>
 
       <td className="tm-table__cell tm-table__cell--muted tm-whitespace-pre">{applyDate}</td>
 
       <td className="tm-table__cell">
-        <Badge className={statusMap[status]}>{getStatusLabel(status)}</Badge>
+        <Badge className={statusMap[status] || ""}>{getStatusLabel(status)}</Badge>
       </td>
 
       <td className="tm-table__cell">
@@ -248,27 +274,17 @@ function CandidateRow({
           <button
             type="button"
             className="tm-actions__text-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditStatus?.();
-            }}
+            onClick={(e) => { e.stopPropagation(); onEditStatus?.(); }}
           >
-            Ubah
-            <br />
-            Status
+            Ubah<br />Status
           </button>
-
           <button
             type="button"
             className="tm-actions__icon-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewDetail?.();
-            }}
+            onClick={(e) => { e.stopPropagation(); onViewDetail?.(); }}
           >
             <Eye size={15} />
           </button>
-
           <button
             type="button"
             className="tm-actions__icon-btn"
@@ -276,7 +292,6 @@ function CandidateRow({
           >
             <Mail size={15} />
           </button>
-
           <button
             type="button"
             className="tm-actions__icon-btn"
@@ -292,16 +307,16 @@ function CandidateRow({
 
 function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggleSelect }) {
   const statusMap = {
-    PENDING: "tm-badge--pending",
-    SHORTLISTED: "tm-badge--shortlisted",
-    REJECTED: "tm-badge--rejected",
+    PENDING:      "tm-badge--pending",
+    SHORTLISTED:  "tm-badge--shortlisted",
+    REJECTED:     "tm-badge--rejected",
     INTERVIEWING: "tm-badge--interviewing",
-    OFFERED: "tm-badge--offered",
-    HIRED: "tm-badge--hired",
+    OFFERED:      "tm-badge--offered",
+    HIRED:        "tm-badge--hired",
   };
 
   const workTypeMap = {
-    Internship: "tm-badge--internship",
+    Internship:  "tm-badge--internship",
     "Full Time": "tm-badge--fulltime",
   };
 
@@ -309,7 +324,11 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
     <div className="tm-mobile-card" onClick={onClick}>
       <div className="tm-mobile-card__top">
         <div className="tm-candidate">
-          <img src={candidate.image} alt={candidate.name} className="tm-candidate__avatar" />
+          <img
+            src={candidate.image}
+            alt={candidate.name}
+            className="tm-candidate__avatar"
+          />
           <div>
             <div className="tm-candidate__name">{candidate.name}</div>
             <div className="tm-candidate__email">{candidate.email}</div>
@@ -319,10 +338,7 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
           type="checkbox"
           checked={candidate.selected}
           readOnly
-          onClick={(e) => {
-            e.stopPropagation();
-            onToggleSelect?.();
-          }}
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
         />
       </div>
 
@@ -342,21 +358,17 @@ function CandidateCard({ candidate, onClick, onEditStatus, onViewDetail, onToggl
         <div>
           <span className="tm-mobile-card__label">Tipe</span>
           <div className="tm-mobile-card__value">
-            <Badge className={workTypeMap[candidate.workType]}>{candidate.workType}</Badge>
+            <Badge className={workTypeMap[candidate.workType] || ""}>{candidate.workType}</Badge>
           </div>
         </div>
       </div>
 
       <div className="tm-mobile-card__footer">
-        <Badge className={statusMap[candidate.status]}>{getStatusLabel(candidate.status)}</Badge>
+        <Badge className={statusMap[candidate.status] || ""}>{getStatusLabel(candidate.status)}</Badge>
         <button
           type="button"
           className="tm-mobile-card__status-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            onEditStatus?.();
-            onViewDetail?.();
-          }}
+          onClick={(e) => { e.stopPropagation(); onEditStatus?.(); }}
         >
           Ubah Status
         </button>
@@ -385,8 +397,12 @@ function ChangeStatusModal({
             <SquarePen size={20} className="tm-text-gold" />
             <h2 className="tm-modal__title">Ubah Status Kandidat</h2>
           </div>
-
-          <button type="button" onClick={onClose} aria-label="Tutup popup" className="tm-modal__close">
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup popup"
+            className="tm-modal__close"
+          >
             <X size={22} />
           </button>
         </div>
@@ -397,11 +413,8 @@ function ChangeStatusModal({
               src={candidate.image}
               alt={candidate.name}
               className="tm-modal__candidate-avatar"
-              onError={(e) => {
-                e.currentTarget.src = "/default-avatar.png";
-              }}
+              onError={(e) => { e.currentTarget.src = "/default-avatar.png"; }}
             />
-
             <div>
               <div className="tm-modal__candidate-name">{candidate.name}</div>
               <div className="tm-modal__candidate-role">
@@ -412,7 +425,6 @@ function ChangeStatusModal({
 
           <div className="tm-modal__field">
             <label className="tm-modal__label">Pilih Status Baru</label>
-
             <div className="tm-select-wrap">
               <select
                 value={selectedStatus}
@@ -425,16 +437,18 @@ function ChangeStatusModal({
                   </option>
                 ))}
               </select>
-
               <ChevronDown size={18} className="tm-select__icon" />
             </div>
           </div>
 
-          <button type="button" onClick={() => setAutoNotify((prev) => !prev)} className="tm-toggle-row">
+          <button
+            type="button"
+            onClick={() => setAutoNotify((prev) => !prev)}
+            className="tm-toggle-row"
+          >
             <span className={`tm-toggle ${autoNotify ? "tm-toggle--active" : ""}`}>
               {autoNotify && <Check size={15} className="tm-text-white" />}
             </span>
-
             <span>
               <div className="tm-toggle__title">Kirim notifikasi otomatis ke kandidat</div>
               <div className="tm-toggle__desc">
@@ -448,7 +462,6 @@ function ChangeStatusModal({
           <button type="button" onClick={onClose} className="tm-btn tm-btn--ghost">
             Batal
           </button>
-
           <button type="button" onClick={onSave} className="tm-btn tm-btn--gold">
             Simpan Perubahan
           </button>
@@ -458,38 +471,41 @@ function ChangeStatusModal({
   );
 }
 
+// ─── main page ───────────────────────────────────────────────────────────────
+
 export default function TalentManagement({ mode = "all" }) {
   const navigate = useNavigate();
 
   const [candidateList, setCandidateList] = React.useState([]);
-  const [selectedIds, setSelectedIds] = React.useState([]);
-  const [keyword, setKeyword] = React.useState("");
-  const [positionFilter, setPositionFilter] = React.useState("ALL");
-  const [workTypeFilter, setWorkTypeFilter] = React.useState("ALL");
-  const [statusFilter, setStatusFilter] = React.useState("ALL");
-  const [currentPage, setCurrentPage] = React.useState(1);
+  const [selectedIds,   setSelectedIds]   = React.useState([]);
+  const [keyword,       setKeyword]       = React.useState("");
+  const [positionFilter,setPositionFilter]= React.useState("ALL");
+  const [workTypeFilter,setWorkTypeFilter]= React.useState("ALL");
+  const [statusFilter,  setStatusFilter]  = React.useState("ALL");
+  const [currentPage,   setCurrentPage]   = React.useState(1);
 
   const [isStatusModalOpen, setIsStatusModalOpen] = React.useState(false);
-  const [activeCandidate, setActiveCandidate] = React.useState(null);
-  const [selectedStatus, setSelectedStatus] = React.useState("SHORTLISTED");
-  const [autoNotify, setAutoNotify] = React.useState(true);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [errorMessage, setErrorMessage] = React.useState("");
+  const [activeCandidate,   setActiveCandidate]   = React.useState(null);
+  const [selectedStatus,    setSelectedStatus]    = React.useState("SHORTLISTED");
+  const [autoNotify,        setAutoNotify]        = React.useState(true);
+  const [isLoading,         setIsLoading]         = React.useState(true);
+  const [errorMessage,      setErrorMessage]      = React.useState("");
 
   const isShortlistedPage = mode === "shortlisted";
 
+  // ── fetch data ──────────────────────────────────────────────────────────────
   React.useEffect(() => {
     const loadCandidates = async () => {
       setIsLoading(true);
       setErrorMessage("");
-
       try {
         const response = isShortlistedPage
           ? await getSelectedCompanyCandidates()
           : await getCompanyCandidates();
+
         const nextCandidates = extractCandidateCollection(response.data).map(mapCandidate);
         setCandidateList(nextCandidates);
-        setSelectedIds(nextCandidates.filter((item) => item.selected).map((item) => item.id));
+        setSelectedIds(nextCandidates.filter((c) => c.selected).map((c) => c.id));
       } catch (error) {
         setCandidateList([]);
         setSelectedIds([]);
@@ -502,6 +518,7 @@ export default function TalentManagement({ mode = "all" }) {
     loadCandidates();
   }, [isShortlistedPage]);
 
+  // ── status modal ─────────────────────────────────────────────────────────────
   const openStatusModal = (candidate) => {
     setActiveCandidate(candidate);
     setSelectedStatus(candidate.status || "PENDING");
@@ -518,6 +535,7 @@ export default function TalentManagement({ mode = "all" }) {
     if (!activeCandidate) return;
 
     try {
+      // ✅ selalu pakai backendId (integer) untuk API call
       await updateCompanyCandidateStatus(activeCandidate.backendId, {
         status: selectedStatus,
       });
@@ -544,18 +562,19 @@ export default function TalentManagement({ mode = "all" }) {
     closeStatusModal();
   };
 
+  // ── navigation ───────────────────────────────────────────────────────────────
   const handleViewDetail = (candidate) => {
-    if (candidate.link) {
-      navigate(candidate.link);
-    }
+    if (candidate.link) navigate(candidate.link);
   };
 
+  // ── selection ────────────────────────────────────────────────────────────────
   const toggleSelect = (id) => {
     setSelectedIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
   };
 
+  // ── filters ──────────────────────────────────────────────────────────────────
   const resetFilters = () => {
     setKeyword("");
     setPositionFilter("ALL");
@@ -564,27 +583,22 @@ export default function TalentManagement({ mode = "all" }) {
   };
 
   const filteredCandidates = candidateList.filter((item) => {
-    const keywordLower = keyword.trim().toLowerCase();
-
+    const kw = keyword.trim().toLowerCase();
     const matchKeyword =
-      keywordLower === "" ||
-      item.name.toLowerCase().includes(keywordLower) ||
-      item.role.toLowerCase().includes(keywordLower) ||
-      item.email.toLowerCase().includes(keywordLower) ||
-      item.id.toLowerCase().includes(keywordLower);
+      kw === "" ||
+      item.name.toLowerCase().includes(kw)  ||
+      item.role.toLowerCase().includes(kw)  ||
+      item.email.toLowerCase().includes(kw) ||
+      item.id.toLowerCase().includes(kw);
 
-    const matchPosition =
-      positionFilter === "ALL" || item.role === positionFilter;
-
-    const matchWorkType =
-      workTypeFilter === "ALL" || item.workType === workTypeFilter;
-
-    const matchStatus =
-      statusFilter === "ALL" || item.status === statusFilter;
+    const matchPosition = positionFilter === "ALL" || item.role     === positionFilter;
+    const matchWorkType = workTypeFilter === "ALL"  || item.workType === workTypeFilter;
+    const matchStatus   = statusFilter   === "ALL"  || item.status   === statusFilter;
 
     return matchKeyword && matchPosition && matchWorkType && matchStatus;
   });
 
+  // ── pagination ───────────────────────────────────────────────────────────────
   const { totalPages, pageItems: paginatedCandidates } = React.useMemo(
     () => paginateItems(filteredCandidates, currentPage, ITEMS_PER_PAGE),
     [filteredCandidates, currentPage]
@@ -601,13 +615,14 @@ export default function TalentManagement({ mode = "all" }) {
   );
 
   React.useEffect(() => {
-    setCurrentPage((prev) => Math.min(prev, totalPages));
+    setCurrentPage((prev) => Math.min(prev, totalPages || 1));
   }, [totalPages]);
 
   React.useEffect(() => {
     setCurrentPage(1);
   }, [keyword, positionFilter, workTypeFilter, statusFilter, isShortlistedPage]);
 
+  // ── select-all ───────────────────────────────────────────────────────────────
   const allVisibleSelected =
     paginatedCandidates.length > 0 &&
     paginatedCandidates.every((item) => selectedIds.includes(item.id));
@@ -624,54 +639,92 @@ export default function TalentManagement({ mode = "all" }) {
     }
   };
 
+  // ── bulk actions ─────────────────────────────────────────────────────────────
   const handleInviteSelected = () => {
     if (!selectedIds.length) return;
-
     setCandidateList((prev) =>
       prev.map((item) =>
-        selectedIds.includes(item.id)
-          ? { ...item, status: "INTERVIEWING" }
-          : item
+        selectedIds.includes(item.id) ? { ...item, status: "INTERVIEWING" } : item
       )
     );
   };
 
   const handleMoveSelected = () => {
     if (!selectedIds.length) return;
-
     setCandidateList((prev) =>
       prev.map((item) =>
-        selectedIds.includes(item.id)
-          ? { ...item, status: "SHORTLISTED" }
-          : item
+        selectedIds.includes(item.id) ? { ...item, status: "SHORTLISTED" } : item
       )
     );
   };
 
   const handleArchiveSelected = () => {
     if (!selectedIds.length) return;
-
-    setCandidateList((prev) =>
-      prev.filter((item) => !selectedIds.includes(item.id))
-    );
+    setCandidateList((prev) => prev.filter((item) => !selectedIds.includes(item.id)));
     setSelectedIds([]);
   };
 
-  const pageTitle = isShortlistedPage ? "Kandidat Terpilih" : "Semua Kandidat";
+  // ── labels ───────────────────────────────────────────────────────────────────
+  const pageTitle      = isShortlistedPage ? "Kandidat Terpilih" : "Semua Kandidat";
   const pageBreadcrumb = isShortlistedPage ? "KANDIDAT TERPILIH" : "SEMUA KANDIDAT";
-  const totalLabel = isShortlistedPage
+  const totalLabel     = isShortlistedPage
     ? `Pilih Semua (${paginatedCandidates.length})`
     : `Select All (${paginatedCandidates.length})`;
-  const selectedLabel = isShortlistedPage
+  const selectedLabel  = isShortlistedPage
     ? `${selectedIds.length} terpilih`
     : `${selectedIds.length} selected`;
   const topSummary = isShortlistedPage
     ? null
     : `Showing ${paginationMeta.start} to ${paginationMeta.end} of ${filteredCandidates.length} results`;
-  const bottomSummary = isShortlistedPage
-    ? `Menampilkan ${paginationMeta.start} sampai ${paginationMeta.end} dari ${filteredCandidates.length} hasil`
-    : `Menampilkan ${paginationMeta.start} sampai ${paginationMeta.end} dari ${filteredCandidates.length} hasil`;
+  const bottomSummary =
+    `Menampilkan ${paginationMeta.start} sampai ${paginationMeta.end} dari ${filteredCandidates.length} hasil`;
 
+  // ── pagination buttons (reusable) ─────────────────────────────────────────
+  const PaginationButtons = ({ prefix }) => (
+    <div className="tm-pagination">
+      <button
+        type="button"
+        className="tm-pagination__btn tm-pagination__btn--edge"
+        disabled={paginationMeta.currentPage === 1}
+        onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+      >
+        ‹
+      </button>
+      {pageNumbers.map((pageNumber, index) =>
+        pageNumber === "ellipsis" ? (
+          <button
+            key={`${prefix}-ellipsis-${index}`}
+            type="button"
+            className="tm-pagination__btn"
+            disabled
+          >
+            ...
+          </button>
+        ) : (
+          <button
+            key={`${prefix}-page-${pageNumber}`}
+            type="button"
+            className={`tm-pagination__btn ${
+              pageNumber === paginationMeta.currentPage ? "tm-pagination__btn--active" : ""
+            }`}
+            onClick={() => setCurrentPage(pageNumber)}
+          >
+            {pageNumber}
+          </button>
+        )
+      )}
+      <button
+        type="button"
+        className="tm-pagination__btn tm-pagination__btn--edge"
+        disabled={paginationMeta.currentPage === paginationMeta.totalPages}
+        onClick={() => setCurrentPage((p) => Math.min(p + 1, paginationMeta.totalPages))}
+      >
+        ›
+      </button>
+    </div>
+  );
+
+  // ── render ───────────────────────────────────────────────────────────────────
   return (
     <div className="tm-layout">
       <Sidebar />
@@ -690,67 +743,25 @@ export default function TalentManagement({ mode = "all" }) {
 
           <div className="tm-header">
             <h1 className="tm-page__title">{pageTitle}</h1>
-
             {!isShortlistedPage && (
-              <button onClick={() => navigate("/admin/mitra/tambah-kandidat")} className="tm-btn tm-btn--primary">
+              <button
+                onClick={() => navigate("/admin/mitra/tambah-kandidat")}
+                className="tm-btn tm-btn--primary"
+              >
                 <Plus size={16} />
                 Add Candidate
               </button>
             )}
           </div>
 
-          {errorMessage && <div className="tm-alert tm-alert--error">{errorMessage}</div>}
+          {errorMessage && (
+            <div className="tm-alert tm-alert--error">{errorMessage}</div>
+          )}
 
           {topSummary && (
             <div className="tm-pagination-bar">
               <div className="tm-pagination-bar__text">{topSummary}</div>
-              {filteredCandidates.length > 0 && (
-              <div className="tm-pagination">
-                <button
-                  type="button"
-                  className="tm-pagination__btn tm-pagination__btn--edge"
-                  disabled={paginationMeta.currentPage === 1}
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                >
-                  ‹
-                </button>
-                {pageNumbers.map((pageNumber, index) =>
-                  pageNumber === "ellipsis" ? (
-                    <button
-                      key={`top-ellipsis-${index}`}
-                      type="button"
-                      className="tm-pagination__btn"
-                      disabled
-                    >
-                      ...
-                    </button>
-                  ) : (
-                    <button
-                      key={`top-page-${pageNumber}`}
-                      type="button"
-                      className={`tm-pagination__btn ${
-                        pageNumber === paginationMeta.currentPage
-                          ? "tm-pagination__btn--active"
-                          : ""
-                      }`}
-                      onClick={() => setCurrentPage(pageNumber)}
-                    >
-                      {pageNumber}
-                    </button>
-                  )
-                )}
-                <button
-                  type="button"
-                  className="tm-pagination__btn tm-pagination__btn--edge"
-                  disabled={paginationMeta.currentPage === paginationMeta.totalPages}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, paginationMeta.totalPages))
-                  }
-                >
-                  ›
-                </button>
-              </div>
-              )}
+              {filteredCandidates.length > 0 && <PaginationButtons prefix="top" />}
             </div>
           )}
 
@@ -763,7 +774,6 @@ export default function TalentManagement({ mode = "all" }) {
               icon={<Star size={18} className="tm-text-blue" />}
               iconWrapClass="tm-bg-light-blue"
             />
-
             <StatCard
               title="Interview Dijadwalkan"
               value="0"
@@ -772,7 +782,6 @@ export default function TalentManagement({ mode = "all" }) {
               icon={<CalendarDays size={18} className="tm-text-purple" />}
               iconWrapClass="tm-bg-light-purple"
             />
-
             <StatCard
               title="Diterima Bulan Ini"
               value="0"
@@ -784,6 +793,7 @@ export default function TalentManagement({ mode = "all" }) {
           </div>
 
           <div className="tm-content-grid">
+            {/* ── sidebar filter ── */}
             <aside className="tm-sidebar-panel-wrap">
               <div className="tm-filter-panel">
                 <div className="tm-filter-panel__header">
@@ -791,7 +801,6 @@ export default function TalentManagement({ mode = "all" }) {
                     <Filter size={18} className="tm-text-dark" />
                     <h2 className="tm-filter-panel__title">Filter</h2>
                   </div>
-
                   <button type="button" className="tm-reset-btn" onClick={resetFilters}>
                     Reset Semua
                   </button>
@@ -811,7 +820,6 @@ export default function TalentManagement({ mode = "all" }) {
 
                   <div>
                     <label className="tm-input-label">Posisi</label>
-
                     <div className="tm-select-wrap">
                       <select
                         className="tm-input tm-input--select"
@@ -819,19 +827,15 @@ export default function TalentManagement({ mode = "all" }) {
                         onChange={(e) => setPositionFilter(e.target.value)}
                       >
                         {POSITION_OPTIONS.map((item) => (
-                          <option key={item.value} value={item.value}>
-                            {item.label}
-                          </option>
+                          <option key={item.value} value={item.value}>{item.label}</option>
                         ))}
                       </select>
-
                       <ChevronDown size={16} className="tm-select__icon" />
                     </div>
                   </div>
 
                   <div>
                     <label className="tm-input-label">Tipe Pekerjaan</label>
-
                     <div className="tm-select-wrap">
                       <select
                         className="tm-input tm-input--select"
@@ -839,19 +843,15 @@ export default function TalentManagement({ mode = "all" }) {
                         onChange={(e) => setWorkTypeFilter(e.target.value)}
                       >
                         {WORK_TYPE_OPTIONS.map((item) => (
-                          <option key={item.value} value={item.value}>
-                            {item.label}
-                          </option>
+                          <option key={item.value} value={item.value}>{item.label}</option>
                         ))}
                       </select>
-
                       <ChevronDown size={16} className="tm-select__icon" />
                     </div>
                   </div>
 
                   <div>
                     <label className="tm-input-label">Status Kandidat</label>
-
                     <div className="tm-select-wrap">
                       <select
                         className="tm-input tm-input--select"
@@ -859,12 +859,9 @@ export default function TalentManagement({ mode = "all" }) {
                         onChange={(e) => setStatusFilter(e.target.value)}
                       >
                         {STATUS_OPTIONS.map((item) => (
-                          <option key={item.value} value={item.value}>
-                            {item.label}
-                          </option>
+                          <option key={item.value} value={item.value}>{item.label}</option>
                         ))}
                       </select>
-
                       <ChevronDown size={16} className="tm-select__icon" />
                     </div>
                   </div>
@@ -873,16 +870,13 @@ export default function TalentManagement({ mode = "all" }) {
 
               <div className="tm-talent-pool-card">
                 <div className="tm-talent-pool-card__bubble" />
-
                 <div className="tm-talent-pool-card__title">Status Talent Pool</div>
                 <div className="tm-talent-pool-card__subtitle">Snapshot basis data saat ini.</div>
-
                 <div className="tm-talent-pool-card__stats">
                   <div>
                     <div className="tm-talent-pool-card__number">0</div>
                     <div className="tm-talent-pool-card__label">Total Talenta</div>
                   </div>
-
                   <div className="tm-talent-pool-card__stats-right">
                     <div className="tm-talent-pool-card__number tm-talent-pool-card__number--gold">0</div>
                     <div className="tm-talent-pool-card__label">Baru minggu ini</div>
@@ -891,6 +885,7 @@ export default function TalentManagement({ mode = "all" }) {
               </div>
             </aside>
 
+            {/* ── table card ── */}
             <div className="tm-table-card">
               <div className="tm-table-toolbar">
                 <div className="tm-table-toolbar__left">
@@ -913,32 +908,28 @@ export default function TalentManagement({ mode = "all" }) {
                     onClick={handleInviteSelected}
                     disabled={!selectedIds.length}
                   >
-                    <Mail size={14} />
-                    Undang
+                    <Mail size={14} /> Undang
                   </button>
-
                   <button
                     type="button"
                     className="tm-btn tm-btn--neutral"
                     onClick={handleMoveSelected}
                     disabled={!selectedIds.length}
                   >
-                    <FolderOpen size={14} />
-                    Pindahkan
+                    <FolderOpen size={14} /> Pindahkan
                   </button>
-
                   <button
                     type="button"
                     className="tm-btn tm-btn--danger-soft"
                     onClick={handleArchiveSelected}
                     disabled={!selectedIds.length}
                   >
-                    <Trash2 size={14} />
-                    Arsip
+                    <Trash2 size={14} /> Arsip
                   </button>
                 </div>
               </div>
 
+              {/* desktop table */}
               <div className="tm-table-wrap">
                 <table className="tm-table">
                   <thead className="tm-table__head">
@@ -953,7 +944,6 @@ export default function TalentManagement({ mode = "all" }) {
                       <th className="tm-table__heading">Aksi</th>
                     </tr>
                   </thead>
-
                   <tbody>
                     {isLoading ? (
                       <tr className="tm-table__row">
@@ -988,6 +978,7 @@ export default function TalentManagement({ mode = "all" }) {
                 </table>
               </div>
 
+              {/* mobile cards */}
               <div className="tm-mobile-list">
                 {isLoading ? (
                   <div className="tm-mobile-card">
@@ -1000,10 +991,7 @@ export default function TalentManagement({ mode = "all" }) {
                   paginatedCandidates.map((item) => (
                     <CandidateCard
                       key={item.id}
-                      candidate={{
-                        ...item,
-                        selected: selectedIds.includes(item.id),
-                      }}
+                      candidate={{ ...item, selected: selectedIds.includes(item.id) }}
                       onToggleSelect={() => toggleSelect(item.id)}
                       onClick={item.link ? () => navigate(item.link) : undefined}
                       onEditStatus={() => openStatusModal(item)}
@@ -1020,56 +1008,10 @@ export default function TalentManagement({ mode = "all" }) {
                 )}
               </div>
 
+              {/* footer pagination */}
               <div className="tm-table-footer">
                 <div className="tm-table-footer__text">{bottomSummary}</div>
-
-                {filteredCandidates.length > 0 && (
-                <div className="tm-pagination">
-                  <button
-                    type="button"
-                    className="tm-pagination__btn tm-pagination__btn--edge"
-                    disabled={paginationMeta.currentPage === 1}
-                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  >
-                    ‹
-                  </button>
-                  {pageNumbers.map((pageNumber, index) =>
-                    pageNumber === "ellipsis" ? (
-                      <button
-                        key={`bottom-ellipsis-${index}`}
-                        type="button"
-                        className="tm-pagination__btn"
-                        disabled
-                      >
-                        ...
-                      </button>
-                    ) : (
-                      <button
-                        key={`bottom-page-${pageNumber}`}
-                        type="button"
-                        className={`tm-pagination__btn ${
-                          pageNumber === paginationMeta.currentPage
-                            ? "tm-pagination__btn--active"
-                            : ""
-                        }`}
-                        onClick={() => setCurrentPage(pageNumber)}
-                      >
-                        {pageNumber}
-                      </button>
-                    )
-                  )}
-                  <button
-                    type="button"
-                    className="tm-pagination__btn tm-pagination__btn--edge"
-                    disabled={paginationMeta.currentPage === paginationMeta.totalPages}
-                    onClick={() =>
-                      setCurrentPage((prev) => Math.min(prev + 1, paginationMeta.totalPages))
-                    }
-                  >
-                    ›
-                  </button>
-                </div>
-                )}
+                {filteredCandidates.length > 0 && <PaginationButtons prefix="bottom" />}
               </div>
             </div>
           </div>

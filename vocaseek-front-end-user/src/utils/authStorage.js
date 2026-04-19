@@ -5,15 +5,13 @@ function getBrowserStorage() {
   if (typeof window === "undefined") {
     return null;
   }
-
-  return window.sessionStorage;
+  return window.localStorage; // ← GANTI: sessionStorage → localStorage
 }
 
 function removeLegacyLocalAuth() {
   if (typeof window === "undefined") {
     return;
   }
-
   window.localStorage.removeItem(AUTH_STORAGE_KEY);
   window.localStorage.removeItem(AUTH_FLAG_KEY);
 }
@@ -43,7 +41,6 @@ export function saveAuthSession(payload, meta = {}) {
     return normalized;
   }
 
-  removeLegacyLocalAuth();
   storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(normalized));
   storage.setItem(AUTH_FLAG_KEY, "true");
   window.dispatchEvent(new Event("auth-changed"));
@@ -94,19 +91,19 @@ export function clearAuthSession() {
     storage.removeItem(AUTH_FLAG_KEY);
   }
 
-  removeLegacyLocalAuth();
   window.dispatchEvent(new Event("auth-changed"));
 }
 
 export function resolveAdminRoute(user) {
-  const role = typeof user === "string"
-    ? user
-    : user?.role ||
-      user?.user_role ||
-      user?.type ||
-      user?.level ||
-      user?.position ||
-      "";
+  const role =
+    typeof user === "string"
+      ? user
+      : user?.role ||
+        user?.user_role ||
+        user?.type ||
+        user?.level ||
+        user?.position ||
+        "";
 
   const normalizedRole = String(role).toLowerCase();
 

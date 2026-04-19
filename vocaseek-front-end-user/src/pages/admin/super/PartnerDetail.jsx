@@ -2,19 +2,10 @@ import Sidebar from "../../../components/admin/Sidebar";
 import Topbar from "../../../components/admin/Topbar";
 import "../../../styles/PartnerDetail.css";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ChevronRight,
-  Trash2,
-  Building2,
-  UserCircle2,
-  Mail,
-  Phone,
-  CircleCheckBig,
-  Clock3,
-  FileText,
-  History,
-  ArrowLeft,
+  ChevronRight, Trash2, Building2, UserCircle2,
+  Mail, Phone, CircleCheckBig, Clock3, FileText, History, ArrowLeft,
 } from "lucide-react";
 import { getApiErrorMessage } from "../../../services/auth";
 import api from "../../../lib/api";
@@ -28,53 +19,39 @@ export default function PartnerDetail() {
 
   useEffect(() => {
     let isMounted = true;
-
     const loadPartner = async () => {
       setLoading(true);
       setError("");
-
       try {
         const res = await api.get(`/admin/partners/${id}`);
         if (isMounted) setData(res.data?.data ?? null);
       } catch (requestError) {
         if (isMounted) {
-          setError(
-            getApiErrorMessage(
-              requestError,
-              "Gagal memuat detail partner dari backend.",
-            ),
-          );
+          setError(getApiErrorMessage(requestError, "Gagal memuat detail partner dari backend."));
         }
       } finally {
         if (isMounted) setLoading(false);
       }
     };
-
     loadPartner();
     return () => { isMounted = false; };
   }, [id]);
 
-  const partner    = data?.perusahaan ?? null;
-  const pic        = data?.pic ?? null;
-  const aktivitas  = data?.aktivitas ?? [];
-  const dokumen    = data?.dokumen ?? [];
+  // ✅ FIX: data langsung flat, tidak ada nested 'perusahaan'
+  const partner   = data ?? null;
+  const pic       = data?.pic ?? null;
+  const lowongans = data?.lowongans ?? [];
 
-  const documents = useMemo(() => {
-    return dokumen.map((doc) => ({
-      status: doc.status === "Terverifikasi" ? "verified" : "review",
-      statusLabel: doc.status,
-      title: doc.nama,
-      meta: doc.nama,
-    }));
-  }, [dokumen]);
+  // Dokumen dari loa_url dan akta_url
+  const documents = [];
+  if (data?.loa_url)   documents.push({ status: "verified", statusLabel: "Terverifikasi", title: "LOA / Surat Pernyataan", url: data.loa_url });
+  if (data?.akta_url)  documents.push({ status: "verified", statusLabel: "Terverifikasi", title: "Akta Perusahaan", url: data.akta_url });
 
   return (
     <div className="pd-layout">
       <Sidebar />
-
       <main className="pd-main">
         <Topbar />
-
         <section className="pd-content">
           <div className="pd-top-row">
             <div>
@@ -85,59 +62,39 @@ export default function PartnerDetail() {
                 <ChevronRight size={14} />
                 <span className="active">DETAIL MITRA</span>
               </div>
-
               <h1 className="pd-page-title">
-                <ArrowLeft
-                  size={20}
-                  className="pd-back-icon"
-                  onClick={() => navigate(-1)}
-                />
+                <ArrowLeft size={20} className="pd-back-icon" onClick={() => navigate(-1)} />
                 {loading ? "Memuat..." : partner?.nama_perusahaan || "Detail Partner"}
               </h1>
             </div>
-
             <button className="pd-delete-btn" type="button" disabled>
               <Trash2 size={18} />
               <span>Hapus Mitra</span>
             </button>
           </div>
 
-          {error ? (
-            <div style={{ color: "#d93025", marginBottom: "16px" }}>{error}</div>
-          ) : null}
+          {error && <div style={{ color: "#d93025", marginBottom: "16px" }}>{error}</div>}
 
           <div className="pd-company-card">
             <div className="pd-company-head">
               <div className="pd-company-logo">
-                <Building2 size={28} />
+                {partner?.logo_url
+                  ? <img src={partner.logo_url} alt="logo" style={{ width: 56, height: 56, objectFit: "cover", borderRadius: 8 }} />
+                  : <Building2 size={28} />}
               </div>
-
               <div className="pd-company-main">
                 <div className="pd-company-title-row">
-                  <h2>{partner?.nama_perusahaan || "Memuat partner..."}</h2>
+                  <h2>{partner?.nama_perusahaan || "-"}</h2>
                   <span className="pd-mou-badge">
                     {(partner?.status_mitra || "pending").toUpperCase()}
                   </span>
                 </div>
-
                 <div className="pd-company-meta">
-                  <div>
-                    <span>INDUSTRI</span>
-                    <strong>{partner?.industri || "-"}</strong>
-                  </div>
-                  <div>
-                    <span>KONTAK</span>
-                    <strong>{pic?.phone || partner?.notelp || "-"}</strong>
-                  </div>
+                  <div><span>INDUSTRI</span><strong>{partner?.industri || "-"}</strong></div>
+                  <div><span>KONTAK</span><strong>{partner?.notelp || "-"}</strong></div>
                   <div>
                     <span>TGL BERGABUNG</span>
-                    <strong>
-                      {partner?.created_at
-                        ? new Date(partner.created_at).toLocaleDateString("id-ID", {
-                            day: "2-digit", month: "short", year: "numeric",
-                          })
-                        : "-"}
-                    </strong>
+                    <strong>{partner?.tanggal_bergabung || "-"}</strong>
                   </div>
                 </div>
               </div>
@@ -151,16 +108,14 @@ export default function PartnerDetail() {
                   <UserCircle2 size={22} />
                   <h3>Informasi Kontak (PIC)</h3>
                 </div>
-
                 <div className="pd-contact-row">
                   <div className="pd-contact-user">
                     <div className="pd-contact-avatar" />
                     <div>
                       <div className="pd-contact-name">{pic?.nama || "-"}</div>
-                      <div className="pd-contact-role">{pic?.jabatan || "Perusahaan Mitra"}</div>
+                      <div className="pd-contact-role">Perusahaan Mitra</div>
                     </div>
                   </div>
-
                   <div className="pd-contact-info">
                     <div className="pd-contact-item">
                       <Mail size={20} />
@@ -179,29 +134,23 @@ export default function PartnerDetail() {
                   <History size={22} />
                   <h3>Ringkasan Status</h3>
                 </div>
-
                 <div className="pd-timeline">
                   <div className="pd-timeline-item active">
                     <div className="pd-timeline-dot" />
                     <div className="pd-timeline-content">
                       <span>Status saat ini</span>
-                      <p>
-                        Partner berada pada status{" "}
-                        <strong>{partner?.status_mitra || "-"}</strong>.
-                      </p>
+                      <p>Partner berada pada status <strong>{partner?.status_mitra || "-"}</strong>.</p>
                     </div>
                   </div>
-
-                  {aktivitas.map((item, index) => (
-                    <div className="pd-timeline-item" key={index}>
+                  {lowongans.map((job) => (
+                    <div className="pd-timeline-item" key={job.id}>
                       <div className="pd-timeline-dot" />
                       <div className="pd-timeline-content">
-                        <span>{item.tgl}</span>
-                        <p>{item.pesan}</p>
+                        <span>{job.created_at}</span>
+                        <p>{job.judul} — <strong>{job.status}</strong></p>
                       </div>
                     </div>
                   ))}
-
                   <div className="pd-timeline-item">
                     <div className="pd-timeline-dot" />
                     <div className="pd-timeline-content">
@@ -218,31 +167,23 @@ export default function PartnerDetail() {
                 <div className="pd-doc-head">
                   <h3>Dokumen Kerjasama</h3>
                 </div>
-
                 <div className="pd-doc-list">
                   {!loading && documents.length > 0 ? (
                     documents.map((doc) => (
                       <div key={doc.title} className="pd-doc-item">
-                        <div
-                          className={`pd-doc-status ${doc.status === "verified" ? "verified" : "review"}`}
-                        >
-                          {doc.status === "verified" ? (
-                            <CircleCheckBig size={16} />
-                          ) : (
-                            <Clock3 size={16} />
-                          )}
+                        <div className={`pd-doc-status ${doc.status === "verified" ? "verified" : "review"}`}>
+                          {doc.status === "verified" ? <CircleCheckBig size={16} /> : <Clock3 size={16} />}
                           <span>{doc.statusLabel}</span>
                         </div>
-
                         <div className="pd-doc-body">
-                          <div className="pd-doc-icon red">
-                            <FileText size={24} />
-                          </div>
-
+                          <div className="pd-doc-icon red"><FileText size={24} /></div>
                           <div className="pd-doc-meta">
                             <strong>{doc.title}</strong>
-                            <span>{doc.meta}</span>
                           </div>
+                        </div>
+                        <div style={{ display: "flex", gap: 8 }}>
+                          <a href={doc.url} target="_blank" rel="noreferrer" className="pd-doc-btn secondary">Lihat</a>
+                          <a href={doc.url} download className="pd-doc-btn primary">Unduh</a>
                         </div>
                       </div>
                     ))

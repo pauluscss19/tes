@@ -8,9 +8,7 @@ export function getAdminProfile() {
 
 export function updateAdminProfile(payload) {
   return api.post(`${ADMIN_BASE}/profile/update`, payload, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
 }
 
@@ -24,6 +22,11 @@ export function getAdminOverview() {
 
 export function getAdminTalents(params) {
   return api.get(`${ADMIN_BASE}/talents`, { params });
+}
+
+// ✅ BARU — endpoint detail talent by ID
+export function getAdminTalentDetail(id) {
+  return api.get(`${ADMIN_BASE}/talents/${id}`);
 }
 
 export function deleteAdminTalent(id) {
@@ -78,5 +81,7 @@ export function deleteManagedAdminUser(id) {
   return api.delete(`${ADMIN_BASE}/users-management/${id}`);
 }
 
-export const updateManagedAdminUser = (id, data) =>
-  axiosInstance.put(`/admin/users/${id}`, data);
+// ✅ FIX: ganti axiosInstance → api (typo di versi lama)
+export function updateManagedAdminUser(id, data) {
+  return api.put(`${ADMIN_BASE}/users-management/${id}`, data);
+}

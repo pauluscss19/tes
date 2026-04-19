@@ -8,7 +8,7 @@ use App\Models\JobApplication;
 use App\Models\TestAnswer;
 use App\Models\InternExperience;
 use App\Models\InternCertification;
-use App\Models\Lowongan; // Pastikan Abang buat model untuk tabel lowongan
+use App\Models\Lowongan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -22,32 +22,32 @@ class InternController extends Controller
 
         if (!$profile || (int) $profile->is_profile_complete === 0) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Lengkapi profil dulu sebelum mengakses pre-test.',
             ], 403);
         }
 
         if ($profile->test_finished_at) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Pre-test hanya dapat dikerjakan satu kali.',
-                'data' => [
+                'data'    => [
                     'already_completed' => true,
-                    'test_started_at' => $profile->test_started_at,
-                    'test_finished_at' => $profile->test_finished_at,
+                    'test_started_at'   => $profile->test_started_at,
+                    'test_finished_at'  => $profile->test_finished_at,
                 ],
             ], 403);
         }
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'questions' => $this->pretestQuestions(),
-                'duration_minutes' => $this->pretestDurationMinutes(),
+            'data'   => [
+                'questions'       => $this->pretestQuestions(),
+                'duration_minutes'=> $this->pretestDurationMinutes(),
                 'total_questions' => count($this->pretestQuestions()),
                 'already_started' => (bool) $profile->test_started_at,
                 'test_started_at' => $profile->test_started_at,
-                'expires_at' => $this->expiresAt($profile),
+                'expires_at'      => $this->expiresAt($profile),
             ],
         ]);
     }
@@ -57,31 +57,64 @@ class InternController extends Controller
      */
     public function getProfile()
     {
-        $user = Auth::user();
+        $user    = Auth::user();
         $profile = InternProfile::where('user_id', $user->user_id)->first();
-        
-        if (!$profile) return response()->json(['message' => 'Profil tidak ditemukan'], 404);
 
-        $experiences = InternExperience::where('user_id', $user->user_id)->get();
+        if (!$profile) {
+            return response()->json(['message' => 'Profil tidak ditemukan'], 404);
+        }
+
+        $experiences    = InternExperience::where('user_id', $user->user_id)->get();
         $certifications = InternCertification::where('user_id', $user->user_id)->get();
 
         return response()->json([
             'status' => 'success',
-            'data' => [
-                'nama' => $user->nama, 
-                'email' => $user->email,
-                'universitas' => $profile->universitas,
-                'jurusan' => $profile->jurusan,
-                'ipk' => $profile->ipk,
-                'provinsi' => $profile->provinsi,
-                'kabupaten' => $profile->kabupaten,
-                'foto' => $profile->foto ? asset('storage/' . $profile->foto) : null,
-                'cv' => $profile->cv_pdf ? asset('storage/' . $profile->cv_pdf) : null,
-                'instagram' => $profile->instagram,
-                'is_complete' => (int) $profile->is_profile_complete,
-                'pengalaman' => $experiences,
-                'sertifikasi' => $certifications
-            ]
+            'data'   => [
+                'nama'               => $user->nama,
+                'email'              => $user->email,
+                'notelp'             => $profile->notelp,
+                'universitas'        => $profile->universitas,
+                'jurusan'            => $profile->jurusan,
+                'jenjang'            => $profile->jenjang,
+                'ipk'                => $profile->ipk,
+                'tahun_masuk'        => $profile->tahun_masuk,
+                'tahun_lulus'        => $profile->tahun_lulus,
+                'provinsi'           => $profile->provinsi,
+                'kabupaten'          => $profile->kabupaten,
+                'detail_alamat'      => $profile->detail_alamat,
+                'tempat_lahir'       => $profile->tempat_lahir,
+                'tanggal_lahir'      => $profile->tanggal_lahir,
+                'jenis_kelamin'      => $profile->jenis_kelamin,
+                'tentang_saya'       => $profile->tentang_saya,
+                'instagram'          => $profile->instagram,
+                'linkedin'           => $profile->linkedin,
+                'foto'               => $profile->foto
+                                            ? asset('storage/' . $profile->foto)
+                                            : null,
+                // ── Dokumen ──────────────────────────────────────────────────
+                'cv'                 => $profile->cv_pdf
+                                            ? asset('storage/' . $profile->cv_pdf)
+                                            : null,
+                'portofolio'         => $profile->portofolio_pdf
+                                            ? asset('storage/' . $profile->portofolio_pdf)
+                                            : null,
+                'transkrip'          => $profile->transkrip_pdf
+                                            ? asset('storage/' . $profile->transkrip_pdf)
+                                            : null,
+                'ktp'                => $profile->ktp_pdf
+                                            ? asset('storage/' . $profile->ktp_pdf)
+                                            : null,
+                'surat_rekomendasi'  => $profile->surat_rekomendasi_pdf
+                                            ? asset('storage/' . $profile->surat_rekomendasi_pdf)
+                                            : null,
+                'ktm'                => $profile->ktm_pdf
+                                            ? asset('storage/' . $profile->ktm_pdf)
+                                            : null,
+                // ── Lainnya ───────────────────────────────────────────────────
+                'is_complete'        => (int) $profile->is_profile_complete,
+                'pengalaman'         => $experiences,
+                'sertifikasi'        => $certifications,
+            ],
         ]);
     }
 
@@ -90,42 +123,81 @@ class InternController extends Controller
      */
     public function updateProfile(Request $request)
     {
-        $user = Auth::user();
+        $user    = Auth::user();
         $profile = InternProfile::where('user_id', $user->user_id)->first();
 
         $request->validate([
-            'foto'           => 'nullable|image|max:2048',
-            'cv_pdf'         => 'nullable|mimes:pdf|max:5120',
-            'portofolio_pdf' => 'nullable|mimes:pdf|max:5120',
-            'ipk'            => 'nullable|numeric|between:0,4.00',
+            'foto'                  => 'nullable|image|max:2048',
+            'cv_pdf'                => 'nullable|mimes:pdf|max:5120',
+            'portofolio_pdf'        => 'nullable|mimes:pdf|max:5120',
+            'transkrip_pdf'         => 'nullable|mimes:pdf|max:5120',
+            'ktp_pdf'               => 'nullable|mimes:pdf|max:5120',
+            'surat_rekomendasi_pdf' => 'nullable|mimes:pdf|max:5120',
+            'ktm_pdf'               => 'nullable|mimes:pdf|max:5120',
+            'ipk'                   => 'nullable|numeric|between:0,4.00',
         ]);
 
+        // ── Foto ─────────────────────────────────────────────────────────────
         if ($request->hasFile('foto')) {
             if ($profile->foto) Storage::disk('public')->delete($profile->foto);
             $profile->foto = $request->file('foto')->store('profiles/photos', 'public');
         }
-        if ($request->hasFile('cv_pdf')) {
-            if ($profile->cv_pdf) Storage::disk('public')->delete($profile->cv_pdf);
-            $profile->cv_pdf = $request->file('cv_pdf')->store('profiles/documents', 'public');
-        }
-        if ($request->hasFile('portofolio_pdf')) {
-            if ($profile->portofolio_pdf) Storage::disk('public')->delete($profile->portofolio_pdf);
-            $profile->portofolio_pdf = $request->file('portofolio_pdf')->store('profiles/documents', 'public');
+
+        // ── Dokumen PDF ───────────────────────────────────────────────────────
+        $pdfFields = [
+            'cv_pdf',
+            'portofolio_pdf',
+            'transkrip_pdf',
+            'ktp_pdf',
+            'surat_rekomendasi_pdf',
+            'ktm_pdf',
+        ];
+
+        foreach ($pdfFields as $field) {
+            if ($request->hasFile($field)) {
+                if ($profile->$field) Storage::disk('public')->delete($profile->$field);
+                $profile->$field = $request->file($field)->store('profiles/documents', 'public');
+            }
         }
 
-        $profile->update($request->only([
+        // ── Data Teks ─────────────────────────────────────────────────────────
+        $profile->fill($request->only([
             'tentang_saya', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
             'provinsi', 'kabupaten', 'detail_alamat', 'universitas', 'jurusan',
-            'jenjang', 'ipk', 'tahun_masuk', 'tahun_lulus', 'linkedin', 'instagram', 'notelp'
+            'jenjang', 'ipk', 'tahun_masuk', 'tahun_lulus', 'linkedin', 'instagram', 'notelp',
         ]));
 
-        // Update status kelengkapan
+        // ── Kelengkapan Profil ────────────────────────────────────────────────
         if ($profile->foto && $profile->cv_pdf && $profile->universitas) {
             $profile->is_profile_complete = 1;
-            $profile->save();
         }
 
-        return response()->json(['status' => 'success', 'message' => 'Profil diperbarui!']);
+        $profile->save();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Profil diperbarui!',
+            'data'    => [
+                'cv'                => $profile->cv_pdf
+                                          ? asset('storage/' . $profile->cv_pdf)
+                                          : null,
+                'portofolio'        => $profile->portofolio_pdf
+                                          ? asset('storage/' . $profile->portofolio_pdf)
+                                          : null,
+                'transkrip'         => $profile->transkrip_pdf
+                                          ? asset('storage/' . $profile->transkrip_pdf)
+                                          : null,
+                'ktp'               => $profile->ktp_pdf
+                                          ? asset('storage/' . $profile->ktp_pdf)
+                                          : null,
+                'surat_rekomendasi' => $profile->surat_rekomendasi_pdf
+                                          ? asset('storage/' . $profile->surat_rekomendasi_pdf)
+                                          : null,
+                'ktm'               => $profile->ktm_pdf
+                                          ? asset('storage/' . $profile->ktm_pdf)
+                                          : null,
+            ],
+        ]);
     }
 
     /**
@@ -133,16 +205,19 @@ class InternController extends Controller
      */
     public function startTest()
     {
-        $user = Auth::user();
+        $user    = Auth::user();
         $profile = InternProfile::where('user_id', $user->user_id)->first();
 
-        if (!$profile || (int)$profile->is_profile_complete === 0) {
-            return response()->json(['status' => 'error', 'message' => 'Lengkapi profil dulu!'], 403);
+        if (!$profile || (int) $profile->is_profile_complete === 0) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Lengkapi profil dulu!',
+            ], 403);
         }
 
         if ($profile->test_finished_at) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Pre-test hanya dapat dikerjakan satu kali.',
             ], 403);
         }
@@ -153,12 +228,12 @@ class InternController extends Controller
         }
 
         return response()->json([
-            'status' => 'success', 
-            'message' => 'Test dimulai!',
-            'test_started_at' => $profile->test_started_at,
-            'expires_at' => $this->expiresAt($profile),
+            'status'           => 'success',
+            'message'          => 'Test dimulai!',
+            'test_started_at'  => $profile->test_started_at,
+            'expires_at'       => $this->expiresAt($profile),
             'duration_minutes' => $this->pretestDurationMinutes(),
-            'total_questions' => count($this->pretestQuestions()),
+            'total_questions'  => count($this->pretestQuestions()),
         ]);
     }
 
@@ -171,85 +246,89 @@ class InternController extends Controller
             'answers' => 'required|array',
         ]);
 
-        $user = Auth::user();
-        $profile = InternProfile::where('user_id', $user->user_id)->first();
+        $user          = Auth::user();
+        $profile       = InternProfile::where('user_id', $user->user_id)->first();
         $questionsById = collect($this->pretestQuestions())->keyBy('id');
 
         if (!$profile || (int) $profile->is_profile_complete === 0) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Lengkapi profil dulu sebelum mengerjakan pre-test.',
             ], 403);
         }
 
         if ($profile->test_finished_at) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Pre-test hanya dapat dikerjakan satu kali.',
             ], 403);
         }
 
         if (!$profile->test_started_at) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Mulai pre-test terlebih dahulu.',
             ], 400);
         }
 
         if ($this->isTestExpired($profile)) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Waktu pre-test sudah habis.',
+                'status'     => 'error',
+                'message'    => 'Waktu pre-test sudah habis.',
                 'expires_at' => $this->expiresAt($profile),
             ], 422);
         }
 
         if (count($request->answers) !== $questionsById->count()) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Jumlah jawaban tidak sesuai dengan jumlah soal.',
+                'status'   => 'error',
+                'message'  => 'Jumlah jawaban tidak sesuai dengan jumlah soal.',
                 'expected' => $questionsById->count(),
             ], 422);
         }
 
         $normalizedAnswers = collect($request->answers);
-        $questionIds = $normalizedAnswers->pluck('question_id')->filter()->values();
+        $questionIds       = $normalizedAnswers->pluck('question_id')->filter()->values();
 
-        if ($questionIds->count() !== $questionsById->count() || $questionIds->unique()->count() !== $questionsById->count()) {
+        if ($questionIds->count() !== $questionsById->count() ||
+            $questionIds->unique()->count() !== $questionsById->count()) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Setiap soal harus dijawab tepat satu kali.',
             ], 422);
         }
 
         if ($questionIds->sort()->values()->all() !== $questionsById->keys()->sort()->values()->all()) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => 'Daftar soal yang dikirim tidak valid.',
             ], 422);
         }
 
         foreach ($request->answers as $ans) {
-            $question = $questionsById->get((int) ($ans['question_id'] ?? 0));
+            $question       = $questionsById->get((int) ($ans['question_id'] ?? 0));
             $selectedOption = $ans['selected_option'] ?? null;
 
             if (!$question || !in_array($selectedOption, $question['options'], true)) {
                 return response()->json([
-                    'status' => 'error',
+                    'status'  => 'error',
                     'message' => 'Jawaban pre-test tidak valid.',
                 ], 422);
             }
 
             TestAnswer::create([
-                'user_id' => $user->user_id,
+                'user_id'       => $user->user_id,
                 'question_text' => $question['question'],
-                'user_answer' => $selectedOption,
+                'user_answer'   => $selectedOption,
             ]);
         }
 
         $profile->update(['test_finished_at' => now()]);
 
-        return response()->json(['status' => 'success', 'message' => 'Tes berhasil dikirim!']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Tes berhasil dikirim!',
+        ]);
     }
 
     /**
@@ -258,38 +337,42 @@ class InternController extends Controller
     public function applyJob(Request $request)
     {
         $request->validate([
-            'job_id' => 'required|integer', // Mengacu ke ID di tabel lowongan
+            'job_id' => 'required|integer',
         ]);
 
-        $user = Auth::user();
+        $user    = Auth::user();
         $profile = InternProfile::where('user_id', $user->user_id)->first();
 
-        // Validasi: Profil Lengkap & Sudah Test
         if (!$profile->is_profile_complete || !$profile->test_finished_at) {
             return response()->json([
-                'status' => 'error', 
-                'message' => 'Selesaikan profil dan tes dulu sebelum melamar!'
+                'status'  => 'error',
+                'message' => 'Selesaikan profil dan tes dulu sebelum melamar!',
             ], 403);
         }
 
-        // Cek apakah sudah pernah melamar di posisi yang sama
         $exists = JobApplication::where('user_id', $user->user_id)
                                 ->where('job_id', $request->job_id)
                                 ->exists();
-        
+
         if ($exists) {
-            return response()->json(['message' => 'Anda sudah melamar di posisi ini.'], 400);
+            return response()->json([
+                'message' => 'Anda sudah melamar di posisi ini.',
+            ], 400);
         }
 
-        // Simpan Lamaran (Sesuai kolom di tabel job_applications Abang)
         JobApplication::create([
             'user_id' => $user->user_id,
             'job_id'  => $request->job_id,
-            'status'  => 'PENDING' // Sesuai default ENUM di gambar DB
+            'status'  => 'PENDING',
         ]);
 
-        return response()->json(['status' => 'success', 'message' => 'Lamaran berhasil terkirim!']);
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Lamaran berhasil terkirim!',
+        ]);
     }
+
+    // ── Private Helpers ───────────────────────────────────────────────────────
 
     private function pretestQuestions(): array
     {
@@ -303,9 +386,7 @@ class InternController extends Controller
 
     private function expiresAt(InternProfile $profile): ?string
     {
-        if (!$profile->test_started_at) {
-            return null;
-        }
+        if (!$profile->test_started_at) return null;
 
         return Carbon::parse($profile->test_started_at)
             ->addMinutes($this->pretestDurationMinutes())
@@ -314,12 +395,11 @@ class InternController extends Controller
 
     private function isTestExpired(InternProfile $profile): bool
     {
-        if (!$profile->test_started_at) {
-            return false;
-        }
+        if (!$profile->test_started_at) return false;
 
         return now()->greaterThan(
-            Carbon::parse($profile->test_started_at)->addMinutes($this->pretestDurationMinutes())
+            Carbon::parse($profile->test_started_at)
+                ->addMinutes($this->pretestDurationMinutes())
         );
     }
 }

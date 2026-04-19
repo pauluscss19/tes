@@ -9,8 +9,8 @@ class InternProfile extends Model
 {
     use HasFactory;
 
-    protected $table = 'intern_profiles';
-    protected $primaryKey = 'intern_id'; // Sesuai database Abang
+    protected $table      = 'intern_profiles';
+    protected $primaryKey = 'intern_id';
 
     protected $fillable = [
         'user_id',
@@ -31,12 +31,19 @@ class InternProfile extends Model
         'ipk',
         'tahun_masuk',
         'tahun_lulus',
+        // ── Dokumen PDF ───────────────────────
         'cv_pdf',
         'portofolio_pdf',
+        'transkrip_pdf',         // ← BARU
+        'ktp_pdf',               // ← BARU
+        'surat_rekomendasi_pdf', // ← BARU
+        'ktm_pdf',               // ← BARU
+        // ── Pretest ───────────────────────────
         'skor_pretest',
         'test_started_at',
         'test_finished_at',
-        'is_profile_complete'
+        // ── Status ────────────────────────────
+        'is_profile_complete',
     ];
 
     public function user()

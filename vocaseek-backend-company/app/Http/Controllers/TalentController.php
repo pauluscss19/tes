@@ -44,11 +44,14 @@ class TalentController extends Controller
 
         $tableData = $applications->map(fn($app) => [
             'id'           => $app->id,
-            'candidate_id' => 'KDT-' . str_pad($app->user_id, 3, '0', STR_PAD_LEFT),
             'name'         => $app->user->nama          ?? 'N/A',
             'email'        => $app->user->email         ?? '-',
-            'position'     => $app->lowongan->judul_posisi   ?? $app->lowongan->judul_pekerjaan ?? 'N/A',
-            'type'         => $app->lowongan->tipe_magang    ?? $app->lowongan->tipe_pekerjaan  ?? 'Internship',
+            'position'     => $app->lowongan->judul_posisi
+                              ?? $app->lowongan->judul_pekerjaan
+                              ?? 'N/A',
+            'type'         => $app->lowongan->tipe_magang
+                              ?? $app->lowongan->tipe_pekerjaan
+                              ?? 'Internship',
             'date_applied' => $app->created_at->format('d M Y'),
             'status'       => $app->status,
         ]);
@@ -73,74 +76,63 @@ class TalentController extends Controller
         return response()->json([
             'status' => 'success',
             'data'   => [
-
                 'personal' => [
                     'name'    => $user->nama ?? '-',
                     'role'    => $application->lowongan->judul_posisi
                                  ?? $application->lowongan->judul_pekerjaan
                                  ?? 'Candidate',
-                    // ✅ FIX: tentang_saya bukan biodata
-                    'biodata' => $profile->tentang_saya   ?? 'Belum ada biodata.',
-                    'gender'  => $profile->jenis_kelamin  ?? '-',
-                    // ✅ FIX: tanggal_lahir bukan tgl_lahir
-                    'birth'   => ($profile->tempat_lahir  ?? '-') . ', '
+                    'biodata' => $profile->tentang_saya  ?? 'Belum ada biodata.',
+                    'gender'  => $profile->jenis_kelamin ?? '-',
+                    'birth'   => ($profile->tempat_lahir ?? '-') . ', '
                                  . ($profile->tanggal_lahir ?? '-'),
                     'email'   => $user->email             ?? '-',
-                    // ✅ FIX: notelp dari profile, fallback ke user
                     'phone'   => $profile->notelp         ?? $user->notelp ?? '-',
-                    // ✅ FIX: gabungkan detail_alamat + kabupaten + provinsi
-                    'address' => trim(
-                                    implode(', ', array_filter([
-                                        $profile->detail_alamat ?? null,
-                                        $profile->kabupaten     ?? null,
-                                        $profile->provinsi      ?? null,
-                                    ]))
-                                 ) ?: '-',
+                    'address' => trim(implode(', ', array_filter([
+                                    $profile->detail_alamat ?? null,
+                                    $profile->kabupaten     ?? null,
+                                    $profile->provinsi      ?? null,
+                                ]))) ?: '-',
                     'foto'    => $profile->foto
                                     ? asset('storage/' . $profile->foto)
                                     : null,
                     'socials' => [
-                        // ✅ FIX: linkedin bukan linkedin_url
                         'linkedin'  => $profile->linkedin  ?? null,
                         'instagram' => $profile->instagram ?? null,
                     ],
                 ],
-
                 'academic' => [
-                    'university' => $profile->universitas  ?? '-',
-                    'major'      => $profile->jurusan      ?? '-',
-                    'degree'     => $profile->jenjang      ?? '-',
-                    'ipk'        => $profile->ipk          ?? '0.00',
-                    'year_start' => $profile->tahun_masuk  ?? '-',
-                    'graduation' => $profile->tahun_lulus  ?? '-',
+                    'university' => $profile->universitas ?? '-',
+                    'major'      => $profile->jurusan     ?? '-',
+                    'degree'     => $profile->jenjang     ?? '-',
+                    'ipk'        => $profile->ipk         ?? '0.00',
+                    'year_start' => $profile->tahun_masuk ?? '-',
+                    'graduation' => $profile->tahun_lulus ?? '-',
                 ],
-
                 'assessment' => [
-                    // ✅ FIX: pakai pretest_score dari profile
-                    'score'       => $profile->pretest_score ?? 0,
+                    'score'       => $profile->skor_pretest ?? 0,       // ← fix
                     'finished_at' => $profile->test_finished_at
                                         ? \Carbon\Carbon::parse($profile->test_finished_at)
                                             ->format('d M Y H:i')
                                         : null,
                     'date'        => $application->created_at->format('d M Y'),
-                    'summary'     => ($profile->pretest_score ?? 0) > 0
+                    'summary'     => ($profile->skor_pretest ?? 0) > 0  // ← fix
                                         ? 'Kandidat telah menyelesaikan asesmen online.'
                                         : 'Kandidat belum menyelesaikan asesmen.',
                 ],
-
                 'documents' => [
-                    // ✅ FIX: cv_pdf & portofolio_pdf sesuai database
-                    'cv'        => $profile->cv_pdf
-                                    ? asset('storage/' . $profile->cv_pdf)
-                                    : null,
-                    'portfolio' => $profile->portofolio_pdf
-                                    ? asset('storage/' . $profile->portofolio_pdf)
-                                    : null,
-                    'ktp'       => $profile->ktp_path
-                                    ? asset('storage/' . $profile->ktp_path)
-                                    : null,
+                    'cv'                => $profile->cv_pdf
+                                            ? asset('storage/' . $profile->cv_pdf) : null,
+                    'portfolio'         => $profile->portofolio_pdf
+                                            ? asset('storage/' . $profile->portofolio_pdf) : null,
+                    'ktp'               => $profile->ktp_pdf              // ← fix (was ktp_path)
+                                            ? asset('storage/' . $profile->ktp_pdf) : null,
+                    'transkrip'         => $profile->transkrip_pdf
+                                            ? asset('storage/' . $profile->transkrip_pdf) : null,
+                    'surat_rekomendasi' => $profile->surat_rekomendasi_pdf
+                                            ? asset('storage/' . $profile->surat_rekomendasi_pdf) : null,
+                    'ktm'               => $profile->ktm_pdf
+                                            ? asset('storage/' . $profile->ktm_pdf) : null,
                 ],
-
                 'application' => [
                     'id'         => $application->id,
                     'status'     => $application->status,
@@ -175,7 +167,6 @@ class TalentController extends Controller
 
             InternProfile::create([
                 'user_id'             => $user->user_id,
-                // ✅ FIX: universitas & jurusan sesuai kolom database
                 'universitas'         => $validated['universitas'],
                 'jurusan'             => $validated['jurusan'],
                 'is_profile_complete' => true,
@@ -226,13 +217,12 @@ class TalentController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'data'   => $candidates->map(fn($app) => [
-                'id'           => $app->id,
-                'candidate_id' => 'KDT-' . str_pad($app->user_id, 3, '0', STR_PAD_LEFT),
-                'name'         => $app->user->nama,
-                'position'     => $app->lowongan->judul_posisi
-                                  ?? $app->lowongan->judul_pekerjaan,
-                'status'       => $app->status,
+            'data' => $candidates->map(fn($app) => [
+                'id'       => $app->id,
+                'name'     => $app->user->nama,
+                'position' => $app->lowongan->judul_posisi
+                              ?? $app->lowongan->judul_pekerjaan,
+                'status'   => $app->status,
             ]),
         ]);
     }

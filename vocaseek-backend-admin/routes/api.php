@@ -126,13 +126,15 @@ Route::middleware('auth:sanctum')->group(function () {
             // Dashboard
             Route::get('/overview', [AdminDashboardController::class, 'getOverview']);
 
-            // Talent
+            // Talent ✅ ditambah route show
             Route::get('/talents', [AdminTalentController::class, 'index']);
+            Route::get('/talents/{id}', [AdminTalentController::class, 'show']); // ← BARU
 
-            // Partner — GET & POST untuk semua admin
+            // Partner
             Route::get('/partners', [AdminPartnerController::class, 'index']);
             Route::post('/partners', [AdminPartnerController::class, 'store']);
             Route::get('/partners/{id}', [AdminPartnerController::class, 'show']);
+            Route::delete('/partners/{id}', [AdminPartnerController::class, 'destroy']);
 
             // Verifikasi
             Route::prefix('verification')->group(function () {
@@ -153,8 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('/{id}', [AdminUserController::class, 'destroy']);
             });
 
-            // Delete Partner & Talent
-            Route::delete('/partners/{id}', [AdminPartnerController::class, 'destroy']);
+            // Delete Talent
             Route::delete('/talents/{id}', [AdminTalentController::class, 'destroy']);
 
             // Final Verifikasi

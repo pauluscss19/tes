@@ -7,22 +7,19 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\TestAnswer;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable;
 
-    protected $table = 'users';
-    
-    // Karena kamu pakai user_id, pastikan ini konsisten di semua tabel relasi
-     protected $primaryKey = 'user_id'; // Tambahkan ini
-    
+    protected $table      = 'users';
+    protected $primaryKey = 'user_id';
+
     protected $fillable = [
         'nama',
         'email',
         'notelp',
-        'foto',      // Pastikan 'foto' ada di fillable!
+        'foto',
         'password',
         'role',
         'google_id',
@@ -33,31 +30,21 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    /**
-     * Casting password agar otomatis di-hash
-     */
     protected function casts(): array
     {
         return [
-            'password' => 'hashed',
+            'password'          => 'hashed',
             'email_verified_at' => 'datetime',
         ];
     }
 
-    // --- RELASI ---
+    // ── Relasi ────────────────────────────────────────────────────────────────
 
-    /**
-     * Relasi ke profil Intern
-     */
     public function internProfile()
     {
-        // Parameter: (Model, Foreign Key di tabel tujuan, Local Key di tabel users)
         return $this->hasOne(InternProfile::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Relasi ke profil Company (Penting untuk Dashboard Mitra)
-     */
     public function companyProfile()
     {
         return $this->hasOne(CompanyProfile::class, 'user_id', 'user_id');
@@ -69,14 +56,27 @@ class User extends Authenticatable
     }
 
     public function testAnswers()
-{
-    return $this->hasMany(TestAnswer::class, 'user_id', 'user_id');
-}
+    {
+        return $this->hasMany(TestAnswer::class, 'user_id', 'user_id');
+    }
+
+    public function experiences()
+    {
+        return $this->hasMany(InternExperience::class, 'user_id', 'user_id');
+    }
+
+    public function certifications()
+    {
+        return $this->hasMany(InternCertification::class, 'user_id', 'user_id');
+    }
+
+    // ── Password Reset ────────────────────────────────────────────────────────
 
     public function sendPasswordResetNotification($token): void
     {
         $resetUrl = rtrim(config('app.frontend_url'), '/')
-            .'/reset-password?token='.$token.'&email='.urlencode($this->getEmailForPasswordReset());
+            . '/reset-password?token=' . $token
+            . '&email=' . urlencode($this->getEmailForPasswordReset());
 
         $html = <<<HTML
 <!DOCTYPE html>
@@ -89,8 +89,7 @@ class User extends Authenticatable
     <p>Halo {$this->nama},</p>
     <p>Kami menerima permintaan untuk mengatur ulang kata sandi akun Anda.</p>
     <p>
-        Klik tautan berikut untuk membuat kata sandi baru:
-        <br>
+        Klik tautan berikut untuk membuat kata sandi baru:<br>
         <a href="{$resetUrl}">{$resetUrl}</a>
     </p>
     <p>Tautan ini berlaku selama {$this->passwordResetExpiryMinutes()} menit.</p>
@@ -101,13 +100,12 @@ class User extends Authenticatable
 HTML;
 
         Mail::html($html, function ($message) {
-            $message->to($this->email)
-                ->subject('Reset Password Vocaseek');
+            $message->to($this->email)->subject('Reset Password Vocaseek');
         });
     }
 
     private function passwordResetExpiryMinutes(): int
     {
-        return (int) config('auth.passwords.'.config('auth.defaults.passwords').'.expire', 60);
+        return (int) config('auth.passwords.' . config('auth.defaults.passwords') . '.expire', 60);
     }
 }

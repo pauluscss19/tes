@@ -87,6 +87,8 @@ import ReviewDokumenMitraStaff from "./pages/admin/staff/ReviewDokumenMitra_Staf
 import AddCompanyStaff from "./pages/admin/staff/AddCompany_Staff";
 import ProfileStaff from "./pages/admin/staff/Profile_Staff";
 import EditProfileStaff from "./pages/admin/staff/EditProfile_Staff";
+// ✅ TAMBAHAN: halaman assessment review untuk staff
+import AssessmentReviewStaff from "./pages/admin/staff/AssessmentReview_Staff";
 
 import {
   getUserRole,
@@ -97,9 +99,7 @@ import {
 function ProtectedRoute({ children, allowedRoles = [] }) {
   const [isLoggedIn, setIsLoggedIn] = useState(() => isAuthenticated());
   const [role, setRole] = useState(() => getUserRole());
-  const normalizedAllowedRoles = allowedRoles.map((r) =>
-    String(r).toLowerCase()
-  );
+  const normalizedAllowedRoles = allowedRoles.map((r) => String(r).toLowerCase());
 
   useEffect(() => {
     const syncLoginState = () => {
@@ -123,12 +123,8 @@ function ProtectedRoute({ children, allowedRoles = [] }) {
 
   if (allowedRoles.length > 0) {
     const normalizedRole = String(role).toLowerCase();
-    const hasAccess = normalizedAllowedRoles.some(
-      (r) => normalizedRole === r
-    );
-    if (!hasAccess) {
-      return <Navigate to={resolveUserHomeRoute(role)} replace />;
-    }
+    const hasAccess = normalizedAllowedRoles.some((r) => normalizedRole === r);
+    if (!hasAccess) return <Navigate to={resolveUserHomeRoute(role)} replace />;
   }
 
   return children;
@@ -151,9 +147,7 @@ function GuestRoute({ children }) {
     };
   }, []);
 
-  if (isLoggedIn) {
-    return <Navigate to={resolveUserHomeRoute(role)} replace />;
-  }
+  if (isLoggedIn) return <Navigate to={resolveUserHomeRoute(role)} replace />;
 
   return children;
 }
@@ -246,15 +240,13 @@ export default function App() {
         <Route path="/admin/mitra/lowongan" element={<ProtectedRoute allowedRoles={["company"]}><JobPostings /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/tambah" element={<ProtectedRoute allowedRoles={["company"]}><CreateJob /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/pratinjau" element={<ProtectedRoute allowedRoles={["company"]}><CreateJobPreview /></ProtectedRoute>} />
-       <Route path="/admin/mitra/lowongan/:jobId/pelamar" element={<ProtectedRoute allowedRoles={["company"]}><JobApplicants /></ProtectedRoute>} />
+        <Route path="/admin/mitra/lowongan/:jobId/pelamar" element={<ProtectedRoute allowedRoles={["company"]}><JobApplicants /></ProtectedRoute>} />
         <Route path="/admin/mitra/company-profile" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfile /></ProtectedRoute>} />
         <Route path="/admin/mitra/company-profile/settings" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfileSettings /></ProtectedRoute>} />
         <Route path="/admin/mitra/talent" element={<ProtectedRoute allowedRoles={["company"]}><Navigate to="/admin/mitra/talent/semua-kandidat" replace /></ProtectedRoute>} />
         <Route path="/admin/mitra/tambah-kandidat" element={<ProtectedRoute allowedRoles={["company"]}><TambahKandidat /></ProtectedRoute>} />
         <Route path="/admin/mitra/talent/semua-kandidat" element={<ProtectedRoute allowedRoles={["company"]}><TalentManagement mode="all" /></ProtectedRoute>} />
         <Route path="/admin/mitra/talent/kandidat-terpilih" element={<ProtectedRoute allowedRoles={["company"]}><TalentManagement mode="shortlisted" /></ProtectedRoute>} />
-
-        {/* ✅ FIXED: dinamis pakai :id */}
         <Route path="/admin/mitra/talent/:id" element={<ProtectedRoute allowedRoles={["company"]}><DetailTalent /></ProtectedRoute>} />
         <Route path="/admin/mitra/talent/:id/review-dokumen" element={<ProtectedRoute allowedRoles={["company"]}><ReviewDokumen /></ProtectedRoute>} />
         <Route path="/admin/mitra/talent/:id/assessment-review" element={<ProtectedRoute allowedRoles={["company"]}><AssessmentReview /></ProtectedRoute>} />
@@ -265,6 +257,8 @@ export default function App() {
         <Route path="/admin/staff/talent-management" element={<ProtectedRoute allowedRoles={["staff_admin"]}><TalentManagementStaff /></ProtectedRoute>} />
         <Route path="/admin/staff/talent/:id" element={<ProtectedRoute allowedRoles={["staff_admin"]}><TalentDetailStaff /></ProtectedRoute>} />
         <Route path="/admin/staff/talent/:id/review-dokumen" element={<ProtectedRoute allowedRoles={["staff_admin"]}><ReviewDokumenStaff /></ProtectedRoute>} />
+        {/* ✅ TAMBAHAN: route assessment review untuk staff */}
+        <Route path="/admin/staff/talent/:id/assessment-review" element={<ProtectedRoute allowedRoles={["staff_admin"]}><AssessmentReviewStaff /></ProtectedRoute>} />
         <Route path="/admin/staff/partners" element={<ProtectedRoute allowedRoles={["staff_admin"]}><PartnerManagementStaff /></ProtectedRoute>} />
         <Route path="/admin/staff/partners/add-company" element={<ProtectedRoute allowedRoles={["staff_admin"]}><AddCompanyStaff /></ProtectedRoute>} />
         <Route path="/admin/staff/partners/:id" element={<ProtectedRoute allowedRoles={["staff_admin"]}><PartnerDetailStaff /></ProtectedRoute>} />

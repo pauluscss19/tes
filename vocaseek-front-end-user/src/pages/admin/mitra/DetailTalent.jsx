@@ -10,7 +10,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { getCompanyCandidateDetail } from "../../../services/companyTalent";
 
-
 function InfoLabel({ title, value }) {
   return (
     <div className="detail-talent__info-label">
@@ -20,7 +19,6 @@ function InfoLabel({ title, value }) {
   );
 }
 
-
 function Chip({ children, blue = false }) {
   return (
     <span className={`detail-talent__chip ${blue ? "detail-talent__chip--blue" : "detail-talent__chip--default"}`}>
@@ -28,7 +26,6 @@ function Chip({ children, blue = false }) {
     </span>
   );
 }
-
 
 function FileItem({ title, subtitle, color = "orange", empty = false, onClick }) {
   const colorClassMap = {
@@ -38,6 +35,15 @@ function FileItem({ title, subtitle, color = "orange", empty = false, onClick })
     gray:   "detail-talent__file-icon--gray",
   };
 
+  const getIcon = () => {
+    if (title.includes("Curriculum")) return <FileText size={20} />;
+    if (title.includes("Portfolio"))  return <Folder size={20} />;
+    if (title.includes("KTP"))        return <BadgeCheck size={20} />;
+    if (title.includes("Surat"))      return <FileText size={20} />;
+    if (title.includes("Transkrip"))  return <GraduationCap size={20} />;
+    return <FileText size={20} />;
+  };
+
   return (
     <div
       onClick={!empty ? onClick : undefined}
@@ -45,11 +51,7 @@ function FileItem({ title, subtitle, color = "orange", empty = false, onClick })
     >
       <div className="detail-talent__file-item-left">
         <div className={`detail-talent__file-icon ${colorClassMap[color]}`}>
-          {title.includes("Curriculum") && <FileText size={20} />}
-          {title.includes("Portfolio")  && <Folder size={20} />}
-          {title.includes("KTP")        && <BadgeCheck size={20} />}
-          {title.includes("Surat")      && <FileText size={20} />}
-          {title.includes("Transkrip")  && <GraduationCap size={20} />}
+          {getIcon()}
         </div>
         <div>
           <div className={`detail-talent__file-title ${empty ? "detail-talent__file-title--empty" : "detail-talent__file-title--filled"}`}>
@@ -67,7 +69,6 @@ function FileItem({ title, subtitle, color = "orange", empty = false, onClick })
     </div>
   );
 }
-
 
 export default function DetailTalent() {
   const navigate = useNavigate();
@@ -95,22 +96,24 @@ export default function DetailTalent() {
     navigate(`/admin/mitra/talent/${id}/review-dokumen`, {
       state: {
         talent: {
-          name:      data?.personal?.name,
-          role:      data?.personal?.role,
-          photo:     null,
-          email:     data?.personal?.email,
-          phone:     data?.personal?.phone,
-          address:   data?.personal?.address,
+          name:    data?.personal?.name,
+          role:    data?.personal?.role,
+          photo:   data?.personal?.foto ?? null,
+          email:   data?.personal?.email,
+          phone:   data?.personal?.phone,
+          address: data?.personal?.address,
           documents: {
-            cv:        { name: "Curriculum Vitae", url: data?.documents?.cv,        filled: !!data?.documents?.cv },
-            portfolio: { name: "Portfolio",         url: data?.documents?.portfolio, filled: !!data?.documents?.portfolio },
-            ktp:       { name: "KTP / Identitas",  url: data?.documents?.ktp,       filled: !!data?.documents?.ktp },
+            cv:               { name: "Curriculum Vitae",  url: data?.documents?.cv,               filled: !!data?.documents?.cv },
+            portfolio:        { name: "Portfolio",          url: data?.documents?.portfolio,        filled: !!data?.documents?.portfolio },
+            ktp:              { name: "KTP / Identitas",   url: data?.documents?.ktp,              filled: !!data?.documents?.ktp },
+            transkrip:        { name: "Transkrip Nilai",   url: data?.documents?.transkrip,        filled: !!data?.documents?.transkrip },
+            surat_rekomendasi:{ name: "Surat Rekomendasi", url: data?.documents?.surat_rekomendasi,filled: !!data?.documents?.surat_rekomendasi },
+            ktm:              { name: "KTM",               url: data?.documents?.ktm,              filled: !!data?.documents?.ktm },
           },
         },
       },
     });
 
-  // ── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="detail-talent">
@@ -127,7 +130,6 @@ export default function DetailTalent() {
     );
   }
 
-  // ── Error ─────────────────────────────────────────────────────────────────
   if (error || !data) {
     return (
       <div className="detail-talent">
@@ -160,7 +162,6 @@ export default function DetailTalent() {
         <Topbar />
 
         <section className="detail-talent__section">
-          {/* Breadcrumb */}
           <div className="detail-talent__breadcrumb">
             <span className="detail-talent__breadcrumb-muted">ADMIN</span>
             <span className="detail-talent__breadcrumb-muted">›</span>
@@ -169,7 +170,6 @@ export default function DetailTalent() {
             <span className="detail-talent__breadcrumb-active">DETAIL PROFIL</span>
           </div>
 
-          {/* Header */}
           <div className="detail-talent__header">
             <div className="detail-talent__header-left">
               <button
@@ -209,9 +209,13 @@ export default function DetailTalent() {
               <div className="detail-talent__profile-top">
                 <div className="detail-talent__avatar-wrapper">
                   <div className="detail-talent__avatar">
-                    <div className="detail-talent__avatar-fallback">
-                      {personal?.name?.charAt(0) || "?"}
-                    </div>
+                    {personal?.foto ? (
+                      <img src={personal.foto} alt={personal.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+                    ) : (
+                      <div className="detail-talent__avatar-fallback">
+                        {personal?.name?.charAt(0) || "?"}
+                      </div>
+                    )}
                   </div>
                   <div className="detail-talent__avatar-status" />
                 </div>
@@ -276,9 +280,9 @@ export default function DetailTalent() {
                         {academic?.university || "-"}
                       </div>
                       <div className="detail-talent__education-subtitle">
-                        {academic?.major} • Lulus {academic?.graduation}
+                        {academic?.major || "-"} • Lulus {academic?.graduation || "-"}
                         <br />
-                        IPK {academic?.ipk}
+                        IPK {academic?.ipk || "-"}
                       </div>
                     </div>
                   </div>
@@ -360,8 +364,20 @@ export default function DetailTalent() {
                 empty={!documents?.ktp}
                 onClick={goToReviewDokumen}
               />
-              <FileItem title="Surat Rekomendasi" subtitle="Belum ada file" color="gray" empty />
-              <FileItem title="Transkrip Nilai"   subtitle="Belum ada file" color="gray" empty />
+              <FileItem
+                title="Surat Rekomendasi"
+                subtitle={documents?.surat_rekomendasi ? "Tersedia" : "Belum ada file"}
+                color={documents?.surat_rekomendasi ? "blue" : "gray"}
+                empty={!documents?.surat_rekomendasi}
+                onClick={goToReviewDokumen}
+              />
+              <FileItem
+                title="Transkrip Nilai"
+                subtitle={documents?.transkrip ? "Tersedia" : "Belum ada file"}
+                color={documents?.transkrip ? "green" : "gray"}
+                empty={!documents?.transkrip}
+                onClick={goToReviewDokumen}
+              />
             </div>
 
           </div>
