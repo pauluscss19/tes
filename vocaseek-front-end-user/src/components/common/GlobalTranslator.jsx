@@ -6,10 +6,7 @@ const textNodeOriginalMap = new WeakMap();
 const attributeOriginalMap = new WeakMap();
 
 function shouldSkipNode(parentElement) {
-  if (!parentElement) {
-    return true;
-  }
-
+  if (!parentElement) return true;
   const tagName = parentElement.tagName;
   return ["SCRIPT", "STYLE", "NOSCRIPT", "CODE", "PRE"].includes(tagName);
 }
@@ -23,11 +20,7 @@ function preserveSpacing(originalText, translatedText) {
 function resolveTextSource(currentText) {
   const storedText = textNodeOriginalMap.get(currentText.node);
   const visibleText = currentText.value;
-
-  if (!storedText) {
-    return visibleText;
-  }
-
+  if (!storedText) return visibleText;
   const normalizedVisible = normalizeTranslatableText(visibleText);
   const knownTranslations = [
     storedText,
@@ -36,36 +29,22 @@ function resolveTextSource(currentText) {
   ]
     .filter(Boolean)
     .map((text) => normalizeTranslatableText(text));
-
   return knownTranslations.includes(normalizedVisible) ? storedText : visibleText;
 }
 
 function translateTextNodes(root, locale) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode(node) {
-      if (!node.textContent?.trim()) {
-        return NodeFilter.FILTER_REJECT;
-      }
-
-      if (shouldSkipNode(node.parentElement)) {
-        return NodeFilter.FILTER_REJECT;
-      }
-
+      if (!node.textContent?.trim()) return NodeFilter.FILTER_REJECT;
+      if (shouldSkipNode(node.parentElement)) return NodeFilter.FILTER_REJECT;
       return NodeFilter.FILTER_ACCEPT;
     },
   });
-
   let currentNode = walker.nextNode();
-
   while (currentNode) {
     const currentText = currentNode.textContent ?? "";
-    const originalText = resolveTextSource({
-      node: currentNode,
-      value: currentText,
-    });
-
+    const originalText = resolveTextSource({ node: currentNode, value: currentText });
     const translatedText = translatePhrase(originalText, locale);
-
     if (translatedText) {
       textNodeOriginalMap.set(currentNode, originalText);
       currentNode.textContent = preserveSpacing(originalText, translatedText);
@@ -73,7 +52,6 @@ function translateTextNodes(root, locale) {
       textNodeOriginalMap.delete(currentNode);
       currentNode.textContent = currentText;
     }
-
     currentNode = walker.nextNode();
   }
 }
@@ -81,24 +59,16 @@ function translateTextNodes(root, locale) {
 function translateAttributes(root, locale) {
   const elements = [root, ...root.querySelectorAll("*")];
   const attributeNames = ["placeholder", "title", "aria-label", "value"];
-
   elements.forEach((element) => {
     attributeNames.forEach((attributeName) => {
       const attributeValue = element.getAttribute(attributeName);
-      if (!attributeValue) {
-        return;
-      }
-
-      if (attributeName === "value" && !["BUTTON", "INPUT"].includes(element.tagName)) {
-        return;
-      }
-
+      if (!attributeValue) return;
+      if (attributeName === "value" && !["BUTTON", "INPUT"].includes(element.tagName)) return;
       const originalAttributes = attributeOriginalMap.get(element) || {};
       if (!originalAttributes[attributeName]) {
         originalAttributes[attributeName] = attributeValue;
         attributeOriginalMap.set(element, originalAttributes);
       }
-
       const translatedText = translatePhrase(originalAttributes[attributeName], locale);
       element.setAttribute(attributeName, translatedText || originalAttributes[attributeName]);
     });
@@ -107,10 +77,7 @@ function translateAttributes(root, locale) {
 
 function applyGlobalTranslations(locale) {
   const root = document.getElementById("root");
-  if (!root) {
-    return;
-  }
-
+  if (!root) return;
   translateTextNodes(root, locale);
   translateAttributes(root, locale);
 }
@@ -118,10 +85,13 @@ function applyGlobalTranslations(locale) {
 export default function GlobalTranslator() {
   useEffect(() => {
     let animationFrameId = 0;
+    let isTranslating = false; // ✅ flag anti infinite loop
 
     const translate = () => {
       const locale = normalizeTranslatableText(getSavedLanguage()) || "id";
+      isTranslating = true;
       applyGlobalTranslations(locale === "en" ? "en" : "id");
+      isTranslating = false;
     };
 
     const scheduleTranslate = () => {
@@ -130,6 +100,7 @@ export default function GlobalTranslator() {
     };
 
     const observer = new MutationObserver(() => {
+      if (isTranslating) return; // ✅ skip kalau kita yang ubah DOM
       scheduleTranslate();
     });
 

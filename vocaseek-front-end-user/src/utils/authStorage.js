@@ -15,7 +15,13 @@ export function saveAuthSession(payload, meta = {}) {
       payload?.data?.access_token ||
       "",
     user: payload?.user || payload?.data?.user || null,
-    role: payload?.role || payload?.data?.role || "",
+    // ✅ Tambah fallback dari user.role
+    role:
+      payload?.role ||
+      payload?.data?.role ||
+      payload?.user?.role ||        // ← INI YANG KURANG
+      payload?.data?.user?.role ||  // ← INI JUGA
+      "",
     identifier:
       payload?.identifier ||
       payload?.data?.identifier ||

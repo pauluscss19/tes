@@ -14,3 +14,7 @@ createRoot(document.getElementById("root")).render(
     </BrowserRouter>
   </StrictMode>
 );
+
+window.addEventListener("error", (e) => {
+  document.body.innerHTML += `<pre style="color:red;position:fixed;top:0;left:0;z-index:9999;background:white;padding:20px">${e.message}\n${e.filename}:${e.lineno}</pre>`;
+});

@@ -18,10 +18,7 @@ export default function FloatingLanguageSwitcher() {
 
   useEffect(() => {
     const loadLanguage = async () => {
-      if (isUpdatingRef.current) {
-        return;
-      }
-
+      if (isUpdatingRef.current) return;
       try {
         const syncedLanguage = await syncLanguageFromServer();
         setSelectedLanguage(syncedLanguage);
@@ -30,29 +27,16 @@ export default function FloatingLanguageSwitcher() {
       }
     };
 
-    const syncLanguage = () => {
-      loadLanguage();
-    };
-
     loadLanguage();
-    window.addEventListener("storage", syncLanguage);
-    window.addEventListener("auth-changed", syncLanguage);
-
-    return () => {
-      window.removeEventListener("storage", syncLanguage);
-      window.removeEventListener("auth-changed", syncLanguage);
-    };
+    window.addEventListener("storage", loadLanguage);
+    return () => window.removeEventListener("storage", loadLanguage);
   }, []);
 
   const handleLanguageChange = async (languageCode) => {
-    if (languageCode === selectedLanguage || isUpdatingRef.current) {
-      return;
-    }
-
+    if (languageCode === selectedLanguage || isUpdatingRef.current) return;
     isUpdatingRef.current = true;
     setSelectedLanguage(languageCode);
     setIsUpdating(true);
-
     try {
       const normalizedLanguage = await persistLanguagePreference(languageCode);
       setSelectedLanguage(normalizedLanguage);
@@ -71,12 +55,8 @@ export default function FloatingLanguageSwitcher() {
           <button
             key={option.code}
             type="button"
-            className={`floating-language-switcher__button ${
-              selectedLanguage === option.code ? "active" : ""
-            }`}
-            onClick={() => {
-              void handleLanguageChange(option.code);
-            }}
+            className={`floating-language-switcher__button ${selectedLanguage === option.code ? "active" : ""}`}
+            onClick={() => { void handleLanguageChange(option.code); }}
             aria-pressed={selectedLanguage === option.code}
             title={option.label}
             disabled={isUpdating}

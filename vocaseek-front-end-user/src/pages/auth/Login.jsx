@@ -36,11 +36,11 @@ function Login() {
         password: form.password,
       });
 
-      console.log("RESPONSE DATA:", response.data);
-      console.log("ROLE FROM API:", response.data?.role);
+      // ✅ Simpan session — role diambil otomatis dari user.role di saveAuthSession
+      const session = saveAuthSession(response.data, { email: form.email });
 
-      saveAuthSession(response.data, { email: form.email });
-      navigate(resolveUserHomeRoute(response.data?.role), { replace: true });
+      // ✅ Gunakan session.role yang sudah dinormalisasi, bukan response.data?.role
+      navigate(resolveUserHomeRoute(session.role), { replace: true });
     } catch (requestError) {
       setError(
         getApiErrorMessage(requestError, "Login gagal. Periksa email dan password Anda.")
@@ -55,19 +55,13 @@ function Login() {
     setIsGoogleSubmitting(true);
 
     try {
-      // ── DEBUG: tangkap token ──────────────────────────
       const accessToken = await requestGoogleAccessToken();
-      console.log("[DEBUG] accessToken type :", typeof accessToken);
-      console.log("[DEBUG] accessToken value:", accessToken);
-      // ─────────────────────────────────────────────────
-
       const response = await loginWithGoogleAccessToken(accessToken);
-      console.log("[DEBUG] Laravel response :", response.data);
 
+      // ✅ Sama — pakai session.role
       const session = saveAuthSession(response.data);
       navigate(resolveUserHomeRoute(session.role), { replace: true });
     } catch (requestError) {
-      console.error("[DEBUG] Error detail:", requestError?.response?.data);
       setError(
         getApiErrorMessage(
           requestError,

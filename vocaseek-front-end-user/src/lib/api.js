@@ -12,7 +12,7 @@ function getBaseURL() {
     return import.meta.env.VITE_API_INTERN_URL;
   }
 
-  // Belum login → pakai backend login port 8001
+  // Belum login / role user biasa → pakai port 8001
   return import.meta.env.VITE_LOGIN_API_URL;
 }
 
