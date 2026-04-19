@@ -2,21 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Laravel\Sanctum\HasApiTokens;
 
-class User extends Authenticatable
+class User extends Authenticatable implements CanResetPasswordContract
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, CanResetPassword;
 
     protected $table = 'users';
     protected $primaryKey = 'user_id';
 
-    // Aktifkan true jika kamu sudah menjalankan ALTER TABLE sebelumnya untuk created_at/updated_at
-    // Jika masih belum ada kolomnya di HeidiSQL, biarkan false
-    public $timestamps = false;
+    public $timestamps = true;
 
     protected $fillable = [
         'nama',
@@ -24,7 +25,10 @@ class User extends Authenticatable
         'password',
         'role',
         'notelp',
-        'google_id', 
+        'google_id',
+        'status',
+        'foto',
+        'preferred_locale',
     ];
 
     protected $hidden = [
@@ -39,17 +43,22 @@ class User extends Authenticatable
         ];
     }
 
-    /**
-     * Relasi ke profil Intern
-     */
+    public function sendPasswordResetNotification($token)
+    {
+        $url = env('FRONTEND_URL', 'http://localhost:5173')
+            . '/reset-password?token=' . $token
+            . '&email=' . urlencode($this->email);
+
+        ResetPassword::createUrlUsing(fn() => $url);
+
+        $this->notify(new ResetPassword($token));
+    }
+
     public function internProfile()
     {
         return $this->hasOne(InternProfile::class, 'user_id', 'user_id');
     }
 
-    /**
-     * Relasi ke profil Company
-     */
     public function companyProfile()
     {
         return $this->hasOne(CompanyProfile::class, 'user_id', 'user_id');

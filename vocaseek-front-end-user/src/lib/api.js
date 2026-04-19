@@ -8,12 +8,12 @@ function getBaseURL() {
     return import.meta.env.VITE_API_COMPANY_URL;
   }
 
-  // ✅ Tambahkan ini
   if (role?.includes("intern")) {
     return import.meta.env.VITE_API_INTERN_URL;
   }
 
-  return import.meta.env.VITE_API_BASE_URL;
+  // Belum login → pakai backend login port 8001
+  return import.meta.env.VITE_LOGIN_API_URL;
 }
 
 const api = axios.create({

@@ -36,6 +36,9 @@ function Login() {
         password: form.password,
       });
 
+      console.log("RESPONSE DATA:", response.data);
+      console.log("ROLE FROM API:", response.data?.role);
+
       saveAuthSession(response.data, { email: form.email });
       navigate(resolveUserHomeRoute(response.data?.role), { replace: true });
     } catch (requestError) {

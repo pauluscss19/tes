@@ -4,21 +4,18 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\InternController;
 use App\Http\Controllers\GoogleAuthController;
-use App\Http\Controllers\PasswordResetController;
-
-
-
+use App\Http\Controllers\ForgotPasswordController;
 
 // Google OAuth
 Route::post('/auth/google/token', [GoogleAuthController::class, 'handleTokenLogin']);
 
 // Route Publik
-Route::post('/register',      [AuthController::class, 'register']);
-Route::post('/login',         [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login',    [AuthController::class, 'login']);
 
-Route::post('/forgot-password',          [PasswordResetController::class, 'sendResetLink']);
-Route::post('/forgot-password/validate-token', [PasswordResetController::class, 'validateToken']);
-Route::post('/reset-password',           [PasswordResetController::class, 'resetPassword']);
+Route::post('/forgot-password',                [ForgotPasswordController::class, 'sendResetLink']);
+Route::post('/forgot-password/validate-token', [ForgotPasswordController::class, 'validateResetToken']);
+Route::post('/reset-password',                 [ForgotPasswordController::class, 'resetPassword']);
 
 // Route Terproteksi
 Route::middleware('auth:sanctum')->group(function () {
