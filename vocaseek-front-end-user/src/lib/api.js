@@ -12,7 +12,10 @@ function getBaseURL() {
     return import.meta.env.VITE_API_INTERN_URL;
   }
 
-  // Belum login / role user biasa → pakai port 8001
+  if (role?.includes("super") || role?.includes("staff")) {
+    return import.meta.env.VITE_API_ADMIN_URL;
+  }
+
   return import.meta.env.VITE_LOGIN_API_URL;
 }
 
