@@ -22,18 +22,28 @@ import {
 } from "../../../services/adminVerification";
 import { getApiErrorMessage } from "../../../services/auth";
 
-function ApproveCompanyModal({
-  open,
-  type,
-  loading,
-  onClose,
-  onConfirm,
-}) {
+// ── Status label helper ──────────────────────────────────────────────────────
+const STATUS_LABEL = {
+  pending:  "Pending",
+  review:   "Under Review",
+  approved: "Disetujui",
+  rejected: "Ditolak",
+  invalid:  "Tidak Valid",
+};
+
+function getStatusLabel(status) {
+  return STATUS_LABEL[status] ?? status;
+}
+
+// ── Confirm Modal ────────────────────────────────────────────────────────────
+function ApproveCompanyModal({ open, type, loading, error, onClose, onConfirm }) {
   if (!open) return null;
+
+  const isApprove = type === "approved";
 
   return (
     <div className="cvr-modal-overlay" onClick={onClose}>
-      <div className="cvr-modal" onClick={(event) => event.stopPropagation()}>
+      <div className="cvr-modal" onClick={(e) => e.stopPropagation()}>
         <div className="cvr-modal-icon-wrap">
           <div className="cvr-modal-icon-ring">
             <CircleHelp size={28} />
@@ -41,16 +51,23 @@ function ApproveCompanyModal({
         </div>
 
         <h3 className="cvr-modal-title">
-          {type === "approved" ? "Verifikasi Mitra Perusahaan?" : "Tolak Pengajuan Perusahaan?"}
+          {isApprove ? "Verifikasi Mitra Perusahaan?" : "Tolak Pengajuan Perusahaan?"}
         </h3>
         <p className="cvr-modal-text">
-          {type === "approved"
+          {isApprove
             ? "Apakah Anda yakin ingin menyetujui kerja sama dengan perusahaan ini?"
             : "Apakah Anda yakin ingin menolak pengajuan perusahaan ini?"}
         </p>
 
+        {/* ✅ error ditampilkan di dalam modal, bukan di luar */}
+        {error && (
+          <p style={{ color: "#d93025", fontSize: "0.875rem", margin: "0 0 8px" }}>
+            {error}
+          </p>
+        )}
+
         <div className="cvr-modal-actions">
-          <button type="button" className="cvr-modal-cancel" onClick={onClose}>
+          <button type="button" className="cvr-modal-cancel" onClick={onClose} disabled={loading}>
             Batal
           </button>
           <button
@@ -59,7 +76,7 @@ function ApproveCompanyModal({
             onClick={onConfirm}
             disabled={loading}
           >
-            {loading ? "Memproses..." : "Ya"}
+            {loading ? "Memproses..." : "Ya, Lanjutkan"}
           </button>
         </div>
       </div>
@@ -67,27 +84,28 @@ function ApproveCompanyModal({
   );
 }
 
+// ── Document list builder ────────────────────────────────────────────────────
 function buildDocumentList(company) {
   const documents = [
     {
-      slug: "loa",
-      title: "Letter of Acceptance (LoA)",
-      value: company?.documents?.loa,
-      icon: <FileText size={22} />,
+      slug:      "loa",
+      title:     "Letter of Acceptance (LoA)",
+      value:     company?.documents?.loa,
+      icon:      <FileText size={22} />,
       iconClass: "cvr-doc-icon red",
     },
     {
-      slug: "akta",
-      title: "Akta Pendirian Perusahaan",
-      value: company?.documents?.akta,
-      icon: <Landmark size={22} />,
+      slug:      "akta",
+      title:     "Akta Pendirian Perusahaan",
+      value:     company?.documents?.akta,
+      icon:      <Landmark size={22} />,
       iconClass: "cvr-doc-icon blue",
     },
     {
-      slug: "nib",
-      title: "Nomor Induk Berusaha (NIB)",
-      value: company?.nib,
-      icon: <BadgePercent size={22} />,
+      slug:      "nib",
+      title:     "Nomor Induk Berusaha (NIB)",
+      value:     company?.nib,
+      icon:      <BadgePercent size={22} />,
       iconClass: "cvr-doc-icon yellow",
     },
   ];
@@ -95,17 +113,20 @@ function buildDocumentList(company) {
   return documents.filter((item) => Boolean(item.value));
 }
 
+// ── Main Page ────────────────────────────────────────────────────────────────
 export default function CompanyVerificationReview() {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const [company, setCompany] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
-  const [pageError, setPageError] = React.useState("");
-  const [notes, setNotes] = React.useState("");
-  const [submitError, setSubmitError] = React.useState("");
-  const [submitLoading, setSubmitLoading] = React.useState(false);
-  const [modalType, setModalType] = React.useState("");
+  const { id }   = useParams();
 
+  const [company,       setCompany]       = React.useState(null);
+  const [loading,       setLoading]       = React.useState(true);
+  const [pageError,     setPageError]     = React.useState("");
+  const [notes,         setNotes]         = React.useState("");
+  const [submitError,   setSubmitError]   = React.useState("");
+  const [submitLoading, setSubmitLoading] = React.useState(false);
+  const [modalType,     setModalType]     = React.useState(""); // "" | "approved" | "rejected"
+
+  // ── Load detail ────────────────────────────────────────────────────────────
   React.useEffect(() => {
     let isMounted = true;
 
@@ -117,33 +138,26 @@ export default function CompanyVerificationReview() {
         const result = await getVerificationCompanyDetail(id);
         if (isMounted) {
           setCompany(result);
-          setNotes(result.notes || "");
+          setNotes(result.notes ?? "");
         }
       } catch (error) {
         if (isMounted) {
           setPageError(
-            getApiErrorMessage(
-              error,
-              "Gagal memuat detail pengajuan perusahaan.",
-            ),
+            getApiErrorMessage(error, "Gagal memuat detail pengajuan perusahaan.")
           );
         }
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (isMounted) setLoading(false);
       }
     };
 
     loadDetail();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, [id]);
 
   const documents = React.useMemo(() => buildDocumentList(company), [company]);
 
+  // ── Finalize (approve / reject) ────────────────────────────────────────────
   const handleFinalize = async () => {
     if (!modalType || !company) return;
 
@@ -151,78 +165,67 @@ export default function CompanyVerificationReview() {
     setSubmitError("");
 
     try {
-      await finalizeVerification(company.id, {
-        status: modalType,
-        notes,
-      });
-
+      await finalizeVerification(company.id, { status: modalType, notes });
       navigate("/admin/verifikasi-perusahaan", { replace: true });
     } catch (error) {
+      // ✅ setModalType TIDAK di-reset saat error — modal tetap terbuka, error tampil di modal
       setSubmitError(
-        getApiErrorMessage(
-          error,
-          "Gagal menyimpan keputusan verifikasi perusahaan.",
-        ),
+        getApiErrorMessage(error, "Gagal menyimpan keputusan verifikasi perusahaan.")
       );
     } finally {
       setSubmitLoading(false);
-      setModalType("");
+      // ✅ Dipindah dari finally ke catch saja — jangan tutup modal jika gagal
     }
   };
 
+  const closeModal = () => {
+    if (submitLoading) return; // ✅ cegah tutup modal saat sedang proses
+    setModalType("");
+    setSubmitError("");
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="cvr-layout">
       <Sidebar />
-
       <main className="cvr-main">
         <Topbar />
-
         <section className="cvr-content">
+
           <div className="cvr-breadcrumb">
-            <span>Admin</span>
-            <span>›</span>
-            <span>Verifikasi Mitra</span>
-            <span>›</span>
+            <span>Admin</span><span>›</span>
+            <span>Verifikasi Mitra</span><span>›</span>
             <span className="active">Review Dokumen</span>
           </div>
-
           <h1 className="cvr-page-title">Review Dokumen Perusahaan</h1>
           <p className="cvr-page-subtitle">
-            Tinjau detail dan dokumen legalitas calon mitra industri untuk
-            validasi kemitraan.
+            Tinjau detail dan dokumen legalitas calon mitra industri untuk validasi kemitraan.
           </p>
 
-          {pageError ? (
+          {pageError && (
             <div style={{ color: "#d93025", marginBottom: "16px" }}>{pageError}</div>
-          ) : null}
+          )}
 
           <div className="cvr-grid">
+            {/* ── Kolom Kiri ── */}
             <div className="cvr-left-card">
               <div className="cvr-cover" />
               <div className="cvr-company-profile">
                 <div
                   className="cvr-company-image"
-                  style={{
-                    display: "grid",
-                    placeItems: "center",
-                    background: "#f4f6fb",
-                    color: "#8a94a8",
-                  }}
+                  style={{ display: "grid", placeItems: "center", background: "#f4f6fb", color: "#8a94a8" }}
                 >
                   <Building2 size={40} />
                 </div>
 
                 <h2>{company?.name || "Memuat perusahaan..."}</h2>
                 <span className="cvr-status-chip">
-                  • {company ? company.status : "Memuat"}
+                  • {company ? getStatusLabel(company.status) : "Memuat"}
                 </span>
 
                 <div className="cvr-info-block">
                   <h4>SEKTOR INDUSTRI</h4>
-                  <p>
-                    <Building2 size={16} />
-                    {company?.businessType || "-"}
-                  </p>
+                  <p><Building2 size={16} />{company?.businessType || "-"}</p>
                 </div>
 
                 <div className="cvr-info-block">
@@ -232,14 +235,8 @@ export default function CompanyVerificationReview() {
 
                 <div className="cvr-info-block">
                   <h4>KONTAK INFORMASI</h4>
-                  <p>
-                    <Phone size={16} />
-                    {company?.phone || "-"}
-                  </p>
-                  <p>
-                    <Mail size={16} />
-                    {company?.email || "-"}
-                  </p>
+                  <p><Phone size={16} />{company?.phone || "-"}</p>
+                  <p><Mail size={16} />{company?.email || "-"}</p>
                 </div>
 
                 <div className="cvr-info-block">
@@ -249,7 +246,9 @@ export default function CompanyVerificationReview() {
               </div>
             </div>
 
+            {/* ── Kolom Kanan ── */}
             <div className="cvr-right-column">
+              {/* Dokumen */}
               <div className="cvr-docs-card">
                 <div className="cvr-docs-head">
                   <h3>Dokumen Legalitas</h3>
@@ -267,14 +266,11 @@ export default function CompanyVerificationReview() {
                             <span>{doc.value}</span>
                           </div>
                         </div>
-
                         <button
                           className="cvr-preview-btn"
                           type="button"
                           onClick={() =>
-                            navigate(
-                              `/admin/verifikasi-perusahaan/${id}/review/dokumen/${doc.slug}`,
-                            )
+                            navigate(`/admin/verifikasi-perusahaan/${id}/review/dokumen/${doc.slug}`)
                           }
                         >
                           <Eye size={16} />
@@ -292,6 +288,7 @@ export default function CompanyVerificationReview() {
                 </div>
               </div>
 
+              {/* Tindakan */}
               <div className="cvr-action-card">
                 <div className="cvr-action-title">
                   <ShieldCheck size={20} />
@@ -301,25 +298,18 @@ export default function CompanyVerificationReview() {
                 <label className="cvr-label">
                   Catatan Verifikasi <span>(Opsional)</span>
                 </label>
-
                 <textarea
                   className="cvr-textarea"
                   placeholder="Tambahkan catatan untuk admin lain atau alasan penolakan..."
                   value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
+                  onChange={(e) => setNotes(e.target.value)}
                 />
-
-                {submitError ? (
-                  <p style={{ color: "#d93025", marginTop: "12px", marginBottom: 0 }}>
-                    {submitError}
-                  </p>
-                ) : null}
 
                 <div className="cvr-action-buttons">
                   <button
                     className="cvr-reject-btn"
                     type="button"
-                    onClick={() => setModalType("rejected")}
+                    onClick={() => { setSubmitError(""); setModalType("rejected"); }}
                     disabled={submitLoading || loading || !company}
                   >
                     <X size={18} />
@@ -329,11 +319,11 @@ export default function CompanyVerificationReview() {
                   <button
                     className="cvr-approve-btn"
                     type="button"
-                    onClick={() => setModalType("approved")}
+                    onClick={() => { setSubmitError(""); setModalType("approved"); }}
                     disabled={submitLoading || loading || !company}
                   >
                     <CheckCircle2 size={18} />
-                    <span>Setujui & Aktifkan Mitra</span>
+                    <span>Setujui &amp; Aktifkan Mitra</span>
                   </button>
                 </div>
               </div>
@@ -346,7 +336,8 @@ export default function CompanyVerificationReview() {
         open={Boolean(modalType)}
         type={modalType}
         loading={submitLoading}
-        onClose={() => setModalType("")}
+        error={submitError}     
+        onClose={closeModal}
         onConfirm={handleFinalize}
       />
     </div>

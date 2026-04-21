@@ -87,9 +87,10 @@ class AdminPartnerController extends Controller
                                             : null,
                 'tanggal_bergabung'   => optional($partner->created_at)->format('d M Y'),
                 'pic' => [
-                    'nama'  => $partner->user->nama ?? 'N/A',
-                    'email' => $partner->user->email ?? 'N/A',
-                    'phone' => $partner->user->notelp ?? $partner->notelp ?? 'N/A',
+                    'nama'    => $partner->user->nama ?? 'N/A',
+                    'email'   => $partner->user->email ?? 'N/A',
+                    'phone'   => $partner->user->notelp ?? $partner->notelp ?? 'N/A',
+                    'jabatan' => 'PIC / Penanggung Jawab',
                 ],
                 'lowongans' => $partner->lowongans->map(fn($job) => [
                     'id'         => $job->id,

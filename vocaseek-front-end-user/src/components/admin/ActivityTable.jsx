@@ -62,7 +62,7 @@ export default function ActivityTable({ activities = [] }) {
                 <tr key={index}>
                   <td>
                     <div className="identity-cell">
-                      <div className="identity-avatar">{item.initials}</div>
+                      <ActivityAvatar foto={item.foto} initials={item.initials} name={item.name} />
                       <div className="identity-name">{item.name}</div>
                     </div>
                   </td>
@@ -87,6 +87,35 @@ export default function ActivityTable({ activities = [] }) {
           </tbody>
         </table>
       </div>
+    </div>
+  );
+}
+
+function ActivityAvatar({ foto, initials, name }) {
+  const [imgError, setImgError] = useState(false);
+  const showPhoto = foto && !imgError;
+
+  return (
+    <div
+      className="identity-avatar"
+      style={{
+        overflow: "hidden",
+        padding: 0,
+        background: showPhoto ? "transparent" : undefined,
+      }}
+    >
+      {showPhoto ? (
+        <img
+          src={foto}
+          alt={name}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span style={{ display: "flex", width: "100%", height: "100%", alignItems: "center", justifyContent: "center" }}>
+          {initials}
+        </span>
+      )}
     </div>
   );
 }

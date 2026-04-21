@@ -13,21 +13,22 @@ import {
   FileSearch,
   ExternalLink,
 } from "lucide-react";
+import { getVerificationCompanyDetail } from "../../../services/adminVerification";
 
-const LOCAL_SUBMISSION_KEY = "vocaseek_company_submissions";
+// ── Helpers ──────────────────────────────────────────────────
 
 function getFileExtension(value = "") {
   if (typeof value !== "string") return "";
-  const cleanValue = value.split("?")[0];
-  const parts = cleanValue.split(".");
+  const clean = value.split("?")[0];
+  const parts = clean.split(".");
   return parts.length > 1 ? parts.pop().toLowerCase() : "";
 }
 
 function getFileNameFromUrl(url = "") {
   if (typeof url !== "string" || !url) return "";
   try {
-    const cleanUrl = url.split("?")[0];
-    const parts = cleanUrl.split("/");
+    const clean = url.split("?")[0];
+    const parts = clean.split("/");
     return parts[parts.length - 1] || "";
   } catch {
     return "";
@@ -36,81 +37,51 @@ function getFileNameFromUrl(url = "") {
 
 function humanizeDocType(docType = "") {
   const map = {
-    nib: "Business Identification Number (NIB)",
-    npwp: "NPWP Perusahaan",
+    nib: "Nomor Induk Berusaha (NIB)",
     akta: "Akta Pendirian Perusahaan",
-    "akta-pendirian": "Akta Pendirian Perusahaan",
     loa: "Letter of Acceptance (LoA)",
-    "company-profile": "Company Profile",
-    profile: "Company Profile / SK",
-    proposal: "Proposal Kerjasama",
+    loa_pdf: "Letter of Acceptance (LoA)",
+    akta_pdf: "Akta Pendirian Perusahaan",
   };
-
-  return map[docType] || docType?.replace(/-/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+  return (
+    map[docType] ||
+    docType?.replace(/-/g, " ").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
 }
 
 function normalizeDocumentItem(item, fallbackKey) {
-  if (!item) {
-    return null;
-  }
+  if (!item) return null;
 
   if (typeof item === "string" || typeof item === "number") {
-    const stringValue = String(item);
-
+    const str = String(item);
     const looksLikeFile =
-      stringValue.includes("/") ||
-      stringValue.startsWith("http") ||
-      stringValue.startsWith("data:") ||
-      /\.(pdf|png|jpg|jpeg|webp)$/i.test(stringValue);
+      str.includes("/") ||
+      str.startsWith("http") ||
+      str.startsWith("data:") ||
+      /\.(pdf|png|jpg|jpeg|webp)$/i.test(str);
 
     return {
       key: fallbackKey,
       title: humanizeDocType(fallbackKey),
-      filename: looksLikeFile ? getFileNameFromUrl(stringValue) || `${fallbackKey}` : `${fallbackKey}`,
-      type: looksLikeFile ? getFileExtension(stringValue).toUpperCase() || "FILE" : "TEXT",
+      filename: looksLikeFile ? getFileNameFromUrl(str) || fallbackKey : fallbackKey,
+      type: looksLikeFile ? getFileExtension(str).toUpperCase() || "FILE" : "TEXT",
       size: "-",
       uploaded: "-",
       uploader: "-",
-      url: looksLikeFile ? stringValue : "",
-      value: looksLikeFile ? "" : stringValue,
+      url: looksLikeFile ? str : "",
+      value: looksLikeFile ? "" : str,
       raw: item,
     };
   }
 
-  const url =
-    item.url ||
-    item.file ||
-    item.path ||
-    item.documentUrl ||
-    item.previewUrl ||
-    item.downloadUrl ||
-    "";
-
-  const explicitFilename =
-    item.filename ||
-    item.fileName ||
-    item.name ||
-    item.original_name ||
-    item.originalName ||
-    "";
-
-  const fallbackFilename = url ? getFileNameFromUrl(url) : "";
-  const filename = explicitFilename || fallbackFilename || fallbackKey;
-
+  const url = item.url || item.file || item.path || "";
+  const filename =
+    item.filename || item.fileName || item.name || item.original_name ||
+    (url ? getFileNameFromUrl(url) : "") || fallbackKey;
   const type =
-    item.type ||
-    item.fileType ||
-    item.mimeType ||
+    item.type || item.fileType ||
     (url ? getFileExtension(url).toUpperCase() : item.value ? "TEXT" : "FILE") ||
     "FILE";
-
-  const value =
-    item.value ||
-    item.number ||
-    item.documentNumber ||
-    item.text ||
-    item.label ||
-    "";
 
   return {
     key: item.key || fallbackKey,
@@ -121,153 +92,152 @@ function normalizeDocumentItem(item, fallbackKey) {
     uploaded: item.uploaded || item.uploadedAt || item.createdAt || "-",
     uploader: item.uploader || item.uploadedBy || item.pic || "-",
     url,
-    value,
+    value: item.value || item.number || item.text || "",
     raw: item,
   };
 }
 
+/**
+ * Ekstrak dokumen dari companyData hasil mapCompanyRecord (adminVerification.js)
+ * Struktur yang masuk:
+ *   companyData.documents = { loa, akta, extra[] }
+ *   companyData.nib       = string
+ */
 function extractDocuments(company) {
   if (!company) return {};
 
-  const rawSources = [
-    company.documents,
-    company.legalDocuments,
-    company.companyDocuments,
-    company.verificationDocuments,
-  ].filter(Boolean);
+  const result = {};
 
-  const mergedDocs = {};
+  // loa_pdf → dari company.documents.loa
+  const loa = company?.documents?.loa;
+  if (loa) result["loa"] = normalizeDocumentItem(loa, "loa");
 
-  rawSources.forEach((source) => {
-    if (Array.isArray(source)) {
-      source.forEach((item, index) => {
-        const key =
-          item?.key ||
-          item?.docType ||
-          item?.slug ||
-          item?.typeKey ||
-          `document-${index + 1}`;
-        mergedDocs[key] = normalizeDocumentItem(item, key);
-      });
-      return;
-    }
+  // akta_pdf → dari company.documents.akta
+  const akta = company?.documents?.akta;
+  if (akta) result["akta"] = normalizeDocumentItem(akta, "akta");
 
-    if (typeof source === "object") {
-      Object.entries(source).forEach(([key, value]) => {
-        mergedDocs[key] = normalizeDocumentItem(value, key);
-      });
-    }
-  });
-
-  if (!Object.keys(mergedDocs).length) {
-    if (company.nib) mergedDocs.nib = normalizeDocumentItem(company.nib, "nib");
-    if (company.npwp) mergedDocs.npwp = normalizeDocumentItem(company.npwp, "npwp");
-    if (company.akta) mergedDocs.akta = normalizeDocumentItem(company.akta, "akta");
-    if (company.loa) mergedDocs.loa = normalizeDocumentItem(company.loa, "loa");
-    if (company.companyProfile) {
-      mergedDocs["company-profile"] = normalizeDocumentItem(
-        company.companyProfile,
-        "company-profile",
-      );
-    }
+  // nib → langsung dari company.nib (string)
+  if (company?.nib && company.nib !== "-") {
+    result["nib"] = normalizeDocumentItem(company.nib, "nib");
   }
 
-  return mergedDocs;
+  // Dokumen tambahan (extra array jika ada)
+  const extra = company?.documents?.extra;
+  if (Array.isArray(extra)) {
+    extra.forEach((item, i) => {
+      const key = item?.key || item?.slug || `extra-${i + 1}`;
+      result[key] = normalizeDocumentItem(item, key);
+    });
+  }
+
+  return result;
 }
 
-function getCompanyFromLocalStorage(companyId) {
-  try {
-    const stored = JSON.parse(localStorage.getItem(LOCAL_SUBMISSION_KEY) || "[]");
-    return stored.find((item) => String(item.id) === String(companyId)) || null;
-  } catch (error) {
-    console.error("Gagal membaca company dari localStorage:", error);
-    return null;
-  }
-}
+// ── Komponen Utama ────────────────────────────────────────────
 
 export default function CompanyDocumentPreview() {
   const navigate = useNavigate();
   const location = useLocation();
   const { id, docType } = useParams();
 
-  const storageKey = `company-doc-validation-${id ?? "general"}-${docType ?? "document"}`;
-  const companyStorageKey = `company-verification-${id ?? "general"}`;
+  // Gunakan sessionStorage (bukan localStorage — diblokir di sandbox)
+  const statusKey = `doc-validation-${id ?? "x"}-${docType ?? "doc"}`;
+  const companyKey = `company-verify-${id ?? "x"}`;
+
   const [validationStatus, setValidationStatus] = useState("");
   const [savedStatus, setSavedStatus] = useState(null);
   const [companyData, setCompanyData] = useState(location.state?.company || null);
+  const [loadingCompany, setLoadingCompany] = useState(!location.state?.company);
 
+  // ── Load company data ─────────────────────────────────────
   useEffect(() => {
+    // 1. Dari location.state (navigate dari halaman review)
     if (location.state?.company) {
       setCompanyData(location.state.company);
+      setLoadingCompany(false);
       return;
     }
 
+    // 2. Dari sessionStorage
     try {
-      const storedCompany = sessionStorage.getItem(companyStorageKey);
-      if (storedCompany) {
-        setCompanyData(JSON.parse(storedCompany));
+      const stored = sessionStorage.getItem(companyKey);
+      if (stored) {
+        setCompanyData(JSON.parse(stored));
+        setLoadingCompany(false);
         return;
       }
-    } catch (error) {
-      console.error("Gagal membaca data company dari sessionStorage:", error);
+    } catch {
+      // abaikan error parse
     }
 
-    const localCompany = getCompanyFromLocalStorage(id);
-    if (localCompany) {
-      setCompanyData(localCompany);
+    // 3. Fallback: fetch dari API
+    if (!id) {
+      setLoadingCompany(false);
+      return;
     }
-  }, [companyStorageKey, id, location.state]);
 
+    getVerificationCompanyDetail(id)
+      .then((result) => {
+        setCompanyData(result);
+        try {
+          sessionStorage.setItem(companyKey, JSON.stringify(result));
+        } catch {
+          // abaikan jika sessionStorage penuh
+        }
+      })
+      .catch(() => {
+        // Data tidak tersedia, biarkan companyData null
+      })
+      .finally(() => setLoadingCompany(false));
+  }, [id, companyKey, location.state]);
+
+  // ── Load status validasi dari sessionStorage ──────────────
   useEffect(() => {
     try {
-      const storedStatus = localStorage.getItem(storageKey);
-      if (!storedStatus) {
-        setValidationStatus("");
-        setSavedStatus(null);
-        return;
-      }
-
-      const parsedStatus = JSON.parse(storedStatus);
-      setValidationStatus(parsedStatus.status || "");
-      setSavedStatus(parsedStatus);
-    } catch (error) {
-      setValidationStatus("");
-      setSavedStatus(null);
+      const stored = sessionStorage.getItem(statusKey);
+      if (!stored) { setValidationStatus(""); setSavedStatus(null); return; }
+      const parsed = JSON.parse(stored);
+      setValidationStatus(parsed.status || "");
+      setSavedStatus(parsed);
+    } catch {
+      setValidationStatus(""); setSavedStatus(null);
     }
-  }, [storageKey]);
+  }, [statusKey]);
 
+  // ── Ekstrak dokumen sesuai DB ─────────────────────────────
   const allDocuments = useMemo(() => extractDocuments(companyData), [companyData]);
 
   const doc = useMemo(() => {
-    const normalizedDocType = String(docType || "").toLowerCase();
+    const key = String(docType || "").toLowerCase();
 
-    if (!normalizedDocType && Object.keys(allDocuments).length > 0) {
+    if (!key && Object.keys(allDocuments).length > 0) {
       return Object.values(allDocuments)[0];
     }
 
     return (
-      allDocuments[normalizedDocType] ||
+      allDocuments[key] ||
       Object.values(allDocuments).find(
-        (item) => String(item?.key || "").toLowerCase() === normalizedDocType,
+        (item) => String(item?.key || "").toLowerCase() === key
       ) || {
-        key: normalizedDocType || "document",
-        title: humanizeDocType(normalizedDocType || "document"),
-        filename: "-",
-        type: "UNKNOWN",
-        size: "-",
-        uploaded: "-",
-        uploader: "-",
-        url: "",
-        value: "",
+        key: key || "document",
+        title: humanizeDocType(key || "document"),
+        filename: "-", type: "UNKNOWN",
+        size: "-", uploaded: "-", uploader: "-",
+        url: "", value: "",
       }
     );
   }, [allDocuments, docType]);
 
+  // ── Nama perusahaan — pakai field dari mapCompanyRecord ───
   const companyName =
-    companyData?.name ||
-    companyData?.companyName ||
-    companyData?.namaPerusahaan ||
+    companyData?.name ||           // ✅ hasil mapCompanyRecord
+    companyData?.nama_perusahaan || // fallback langsung dari DB
     "Perusahaan";
+
+  // ── ID perusahaan — pakai code dari mapCompanyRecord ──────
+  const companyCode =
+    companyData?.code ||           // ✅ hasil getCompanyCode() di service
+    `CMP-${String(id || "").padStart(3, "0")}`;
 
   const canPreviewInIframe =
     !!doc.url &&
@@ -275,90 +245,84 @@ export default function CompanyDocumentPreview() {
       doc.url.startsWith("data:image/") ||
       ["pdf", "png", "jpg", "jpeg", "webp"].includes(getFileExtension(doc.url)));
 
+  // ── Handlers ──────────────────────────────────────────────
   const handleSaveStatus = () => {
     if (!validationStatus) {
       alert("Pilih status validasi dokumen terlebih dahulu.");
       return;
     }
 
-    const nextStatus = {
+    const next = {
       status: validationStatus,
       label: validationStatus === "valid" ? "Valid" : "Tidak Valid / Ditolak",
       savedAt: new Date().toISOString(),
       documentName: doc.title,
     };
 
-    localStorage.setItem(storageKey, JSON.stringify(nextStatus));
-    setSavedStatus(nextStatus);
-
+    try {
+      sessionStorage.setItem(statusKey, JSON.stringify(next));
+    } catch {
+      // abaikan jika sessionStorage penuh
+    }
+    setSavedStatus(next);
     alert(
       validationStatus === "valid"
         ? "Status dokumen berhasil disimpan sebagai Valid."
-        : "Status dokumen berhasil disimpan sebagai Tidak Valid / Ditolak.",
+        : "Status dokumen berhasil disimpan sebagai Tidak Valid / Ditolak."
     );
+  };
+
+  const handleDownload = () => {
+    if (!doc.url) { alert("File dokumen tidak tersedia untuk diunduh."); return; }
+    window.open(doc.url, "_blank", "noopener,noreferrer");
   };
 
   const formatSavedAt = (value) => {
     if (!value) return "";
-
     return new Date(value).toLocaleString("id-ID", {
-      dateStyle: "medium",
-      timeStyle: "short",
+      dateStyle: "medium", timeStyle: "short",
     });
   };
 
-  const handleDownload = () => {
-    if (!doc.url) {
-      alert("File dokumen tidak tersedia untuk diunduh.");
-      return;
-    }
-
-    window.open(doc.url, "_blank", "noopener,noreferrer");
-  };
-
+  // ── Render ────────────────────────────────────────────────
   return (
     <div className="cdp-layout">
       <Sidebar />
-
       <main className="cdp-main">
         <Topbar />
-
         <section className="cdp-content">
+
+          {/* Top Row */}
           <div className="cdp-top-row">
             <div>
               <div className="cdp-breadcrumb">
-                <span>Dashboard</span>
-                <span>›</span>
-                <span>Verifikasi Mitra</span>
-                <span>›</span>
+                <span>Dashboard</span><span>›</span>
+                <span>Verifikasi Mitra</span><span>›</span>
                 <span className="active">Review Dokumen</span>
               </div>
-
               <h1 className="cdp-page-title">{doc.title}</h1>
               <p className="cdp-page-subtitle">
                 Tinjau kelengkapan dan validitas dokumen{" "}
                 <strong>{doc.title}</strong> dari <strong>{companyName}</strong>
               </p>
             </div>
-
             <div className="cdp-top-actions">
-              <button
-                className="cdp-back-btn"
-                type="button"
-                onClick={() => navigate(-1)}
-              >
-                <ArrowLeft size={16} />
-                <span>Kembali ke Review</span>
+              <button className="cdp-back-btn" type="button" onClick={() => navigate(-1)}>
+                <ArrowLeft size={16} /><span>Kembali ke Review</span>
               </button>
-
               <button className="cdp-download-btn" type="button" onClick={handleDownload}>
-                <Download size={16} />
-                <span>Download File</span>
+                <Download size={16} /><span>Download File</span>
               </button>
             </div>
           </div>
 
+          {/* Loading state */}
+          {loadingCompany && (
+            <p style={{ color: "#6b7280", marginBottom: "16px" }}>Memuat data perusahaan...</p>
+          )}
+
           <div className="cdp-grid">
+            {/* ── Viewer ── */}
             <div className="cdp-viewer-card">
               <div className="cdp-viewer-toolbar">
                 <div className="cdp-toolbar-left">
@@ -366,12 +330,13 @@ export default function CompanyDocumentPreview() {
                   <span className="divider" />
                   <span>{doc.type || "Dokumen"}</span>
                 </div>
-
                 <div className="cdp-toolbar-right">
-                  <button type="button" className="cdp-tool-btn" onClick={() => window.location.reload()}>
+                  <button type="button" className="cdp-tool-btn"
+                    onClick={() => window.location.reload()}>
                     <RotateCw size={18} />
                   </button>
-                  <button type="button" className="cdp-tool-btn" onClick={() => window.print()}>
+                  <button type="button" className="cdp-tool-btn"
+                    onClick={() => window.print()}>
                     <Printer size={18} />
                   </button>
                 </div>
@@ -383,178 +348,93 @@ export default function CompanyDocumentPreview() {
                     title={doc.title}
                     src={doc.url}
                     style={{
-                      width: "100%",
-                      minHeight: "780px",
-                      border: "none",
-                      borderRadius: "18px",
-                      background: "#fff",
+                      width: "100%", minHeight: "780px",
+                      border: "none", borderRadius: "18px", background: "#fff",
                     }}
                   />
                 ) : doc.value ? (
-                  <div
-                    className="cdp-paper"
-                    style={{
-                      width: "100%",
-                      maxWidth: "100%",
-                      minHeight: "420px",
-                    }}
-                  >
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 12,
-                        marginBottom: 24,
-                      }}
-                    >
-                      <div className="cdp-ri-logo">
-                        <FileSearch size={18} />
-                      </div>
+                  <div className="cdp-paper" style={{ width: "100%", maxWidth: "100%", minHeight: "420px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 24 }}>
+                      <div className="cdp-ri-logo"><FileSearch size={18} /></div>
                       <div className="cdp-paper-header-text">
                         <strong>{doc.title}</strong>
                         <span>Data dokumen perusahaan</span>
                       </div>
                     </div>
-
                     <div className="cdp-paper-line" />
-
                     <div className="cdp-doc-info">
-                      <div>
-                        <strong>Nama Perusahaan</strong>
-                        <span>: {companyName}</span>
-                      </div>
-                      <div>
-                        <strong>Jenis Dokumen</strong>
-                        <span>: {doc.title}</span>
-                      </div>
-                      <div>
-                        <strong>Nilai Dokumen</strong>
-                        <span>: {doc.value}</span>
-                      </div>
-                      <div>
-                        <strong>ID Perusahaan</strong>
-                        <span>: {companyData?.code || companyData?.companyId || "-"}</span>
-                      </div>
+                      <div><strong>Nama Perusahaan</strong><span>: {companyName}</span></div>
+                      <div><strong>Jenis Dokumen</strong><span>: {doc.title}</span></div>
+                      <div><strong>Nilai Dokumen</strong><span>: {doc.value}</span></div>
+                      {/* ✅ Pakai companyCode bukan companyData.companyId */}
+                      <div><strong>ID Perusahaan</strong><span>: {companyCode}</span></div>
                     </div>
                   </div>
                 ) : (
-                  <div
-                    className="cdp-paper"
-                    style={{
-                      width: "100%",
-                      maxWidth: "100%",
-                      minHeight: "420px",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      textAlign: "center",
-                      gap: 14,
-                    }}
-                  >
-                    <div className="cdp-ri-logo">
-                      <FileText size={18} />
-                    </div>
+                  <div className="cdp-paper" style={{
+                    width: "100%", maxWidth: "100%", minHeight: "420px",
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", justifyContent: "center",
+                    textAlign: "center", gap: 14,
+                  }}>
+                    <div className="cdp-ri-logo"><FileText size={18} /></div>
                     <h2 style={{ margin: 0 }}>{doc.title}</h2>
                     <p style={{ margin: 0, color: "#6b7280", maxWidth: 480 }}>
-                      Preview visual tidak tersedia untuk dokumen ini. Namun metadata dokumen
-                      tetap ditampilkan di panel kanan.
+                      Preview visual tidak tersedia. Metadata dokumen ditampilkan di panel kanan.
                     </p>
-
-                    {doc.url ? (
-                      <button
-                        type="button"
-                        className="cdp-download-btn"
-                        onClick={handleDownload}
-                      >
-                        <ExternalLink size={16} />
-                        <span>Buka File</span>
+                    {doc.url && (
+                      <button type="button" className="cdp-download-btn" onClick={handleDownload}>
+                        <ExternalLink size={16} /><span>Buka File</span>
                       </button>
-                    ) : null}
+                    )}
                   </div>
                 )}
               </div>
             </div>
 
+            {/* ── Sidebar ── */}
             <aside className="cdp-sidebar">
               <div className="cdp-info-card">
                 <div className="cdp-card-title">
-                  <div className="cdp-title-icon red">
-                    <FileText size={18} />
-                  </div>
+                  <div className="cdp-title-icon red"><FileText size={18} /></div>
                   <div>
                     <h3>Informasi Dokumen</h3>
                     <p>Metadata file yang diunggah</p>
                   </div>
                 </div>
-
                 <div className="cdp-meta-list">
-                  <div className="cdp-meta-row">
-                    <span>Nama Dokumen</span>
-                    <strong>{doc.title}</strong>
-                  </div>
-                  <div className="cdp-meta-row">
-                    <span>Nama File</span>
-                    <strong>{doc.filename || "-"}</strong>
-                  </div>
-                  <div className="cdp-meta-row">
-                    <span>Tipe Dokumen</span>
-                    <strong className="tag">{doc.type || "-"}</strong>
-                  </div>
-                  <div className="cdp-meta-row">
-                    <span>Ukuran</span>
-                    <strong>{doc.size || "-"}</strong>
-                  </div>
-                  <div className="cdp-meta-row">
-                    <span>Tanggal Upload</span>
-                    <strong>{doc.uploaded || "-"}</strong>
-                  </div>
-                  <div className="cdp-meta-row">
-                    <span>Diunggah Oleh</span>
-                    <strong className="linkish">{doc.uploader || "-"}</strong>
-                  </div>
+                  <div className="cdp-meta-row"><span>Nama Dokumen</span><strong>{doc.title}</strong></div>
+                  <div className="cdp-meta-row"><span>Nama File</span><strong>{doc.filename || "-"}</strong></div>
+                  <div className="cdp-meta-row"><span>Tipe Dokumen</span><strong className="tag">{doc.type || "-"}</strong></div>
+                  <div className="cdp-meta-row"><span>Ukuran</span><strong>{doc.size || "-"}</strong></div>
+                  <div className="cdp-meta-row"><span>Tanggal Upload</span><strong>{doc.uploaded || "-"}</strong></div>
+                  <div className="cdp-meta-row"><span>Diunggah Oleh</span><strong className="linkish">{doc.uploader || "-"}</strong></div>
                 </div>
               </div>
 
               <div className="cdp-status-card">
                 <div className="cdp-card-title">
-                  <div className="cdp-title-icon yellow">
-                    <BadgePercent size={18} />
-                  </div>
+                  <div className="cdp-title-icon yellow"><BadgePercent size={18} /></div>
                   <div>
                     <h3>Status Validasi</h3>
                     <p>Tentukan validitas dokumen ini</p>
                   </div>
                 </div>
-
                 <div className="cdp-radio-box">
-                  <label
-                    className={`cdp-radio-item ${validationStatus === "valid" ? "active" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="validasi"
-                      value="valid"
+                  <label className={`cdp-radio-item ${validationStatus === "valid" ? "active" : ""}`}>
+                    <input type="radio" name="validasi" value="valid"
                       checked={validationStatus === "valid"}
-                      onChange={(event) => setValidationStatus(event.target.value)}
-                    />
+                      onChange={(e) => setValidationStatus(e.target.value)} />
                     <span className="cdp-radio-custom" />
                     <span className="cdp-radio-text">
                       <strong>Valid</strong>
                       <small>Dokumen asli, jelas, dan sesuai persyaratan.</small>
                     </span>
                   </label>
-
-                  <label
-                    className={`cdp-radio-item ${validationStatus === "invalid" ? "active" : ""}`}
-                  >
-                    <input
-                      type="radio"
-                      name="validasi"
-                      value="invalid"
+                  <label className={`cdp-radio-item ${validationStatus === "invalid" ? "active" : ""}`}>
+                    <input type="radio" name="validasi" value="invalid"
                       checked={validationStatus === "invalid"}
-                      onChange={(event) => setValidationStatus(event.target.value)}
-                    />
+                      onChange={(e) => setValidationStatus(e.target.value)} />
                     <span className="cdp-radio-custom" />
                     <span className="cdp-radio-text">
                       <strong>Tidak Valid / Ditolak</strong>
@@ -563,16 +443,15 @@ export default function CompanyDocumentPreview() {
                   </label>
                 </div>
 
-                {savedStatus ? (
+                {savedStatus && (
                   <div className={`cdp-status-note ${savedStatus.status}`}>
                     <strong>Status tersimpan: {savedStatus.label}</strong>
                     <span>{formatSavedAt(savedStatus.savedAt)}</span>
                   </div>
-                ) : null}
+                )}
 
                 <button className="cdp-save-btn" type="button" onClick={handleSaveStatus}>
-                  <Download size={16} />
-                  <span>Simpan Status Dokumen</span>
+                  <Download size={16} /><span>Simpan Status Dokumen</span>
                 </button>
               </div>
             </aside>

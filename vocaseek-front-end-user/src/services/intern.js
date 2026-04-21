@@ -14,13 +14,6 @@ export function updateInternProfile(payload) {
       "Content-Type": "multipart/form-data",
     },
   });
-
-
-  return api.post("/intern/update-profile", payload, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-  });
 }
 
 export function startInternTest() {

@@ -76,9 +76,9 @@ class InternController extends Controller
         }
 
         $request->validate([
-            'foto'           => 'nullable|image|max:1024',
-            'cv_pdf'         => 'nullable|mimes:pdf|max:2048',
-            'portofolio_pdf' => 'nullable|mimes:pdf|max:2048',
+            'foto'           => 'nullable|image|max:5120',
+            'cv_pdf'         => 'nullable|mimes:pdf|max:5120',
+            'portofolio_pdf' => 'nullable|mimes:pdf|max:5120',
             'ipk'            => 'nullable|numeric|between:0,4.00',
         ]);
 
@@ -108,6 +108,7 @@ class InternController extends Controller
             'tentang_saya', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin',
             'provinsi', 'kabupaten', 'detail_alamat', 'universitas', 'jurusan',
             'jenjang', 'ipk', 'tahun_masuk', 'tahun_lulus', 'linkedin', 'instagram',
+            'notelp',
         ];
 
         foreach ($fillable as $field) {
@@ -163,6 +164,16 @@ class InternController extends Controller
         $uid     = $this->userId();
         $profile = InternProfile::where('user_id', $uid)->first();
 
+        if (!$profile) {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Profil tidak ditemukan. Lengkapi profil dulu!',
+            ], 404);
+        }
+
+        // Hapus jawaban lama (jika ada) sebelum menyimpan yang baru
+        TestAnswer::where('user_id', $uid)->delete();
+
         foreach ($request->answers as $ans) {
             TestAnswer::create([
                 'user_id'       => $uid,
@@ -171,9 +182,9 @@ class InternController extends Controller
             ]);
         }
 
+        // Update timestamp selesai — JANGAN set pretest_score ke null (NOT NULL column)
         $profile->update([
             'test_finished_at' => now(),
-            'pretest_score'    => null,
         ]);
 
         return response()->json([
@@ -194,11 +205,25 @@ class InternController extends Controller
         $uid     = $this->userId();
         $profile = InternProfile::where('user_id', $uid)->first();
 
-        if (!$profile || !$profile->is_profile_complete || !$profile->test_finished_at) {
+        if (!$profile || !$profile->is_profile_complete) {
             return response()->json([
                 'status'  => 'error',
-                'message' => 'Selesaikan profil dan tes dulu!',
+                'message' => 'Selesaikan profil dulu sebelum melamar!',
             ], 403);
+        }
+
+        // Jika test_finished_at null tapi user sudah punya jawaban di DB,
+        // fix otomatis timestamp-nya (akibat bug lama pretest_score not null)
+        if (!$profile->test_finished_at) {
+            $hasAnswers = TestAnswer::where('user_id', $uid)->exists();
+            if ($hasAnswers) {
+                $profile->update(['test_finished_at' => now()]);
+            } else {
+                return response()->json([
+                    'status'  => 'error',
+                    'message' => 'Selesaikan pre-test dulu sebelum melamar!',
+                ], 403);
+            }
         }
 
         $alreadyApplied = JobApplication::where('user_id', $uid)

@@ -2,6 +2,8 @@
 
 namespace App\Models;
 use App\Models\TestAnswer;
+use App\Models\InternExperience;
+use App\Models\InternCertification;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -63,5 +65,21 @@ public function testAnswers()
     public function companyProfile()
     {
         return $this->hasOne(CompanyProfile::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Relasi ke pengalaman kerja intern
+     */
+    public function experiences()
+    {
+        return $this->hasMany(InternExperience::class, 'user_id', 'user_id');
+    }
+
+    /**
+     * Relasi ke sertifikasi / lisensi intern
+     */
+    public function certifications()
+    {
+        return $this->hasMany(InternCertification::class, 'user_id', 'user_id');
     }
 }

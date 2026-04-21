@@ -17,6 +17,7 @@ class InternProfile extends Model
     'tempat_lahir',
     'tanggal_lahir',
     'jenis_kelamin',
+    'notelp',
     'provinsi',
     'kabupaten',
     'detail_alamat',

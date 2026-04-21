@@ -9,22 +9,24 @@ use Illuminate\Http\Request;
 
 class AdminTalentController extends Controller
 {
+    // ── Helper: buat URL storage intern ──────────────────────────────────────
+    private function internUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+        $base = rtrim(config('app.intern_storage_url', env('INTERN_STORAGE_URL', 'http://localhost:8002')), '/');
+        return $base . '/storage/' . $path;
+    }
+
     // ── Helper: dokumen PDF ───────────────────────────────────────────────────
     private function buildDokumen($profile): array
     {
         return [
-            'cv_pdf'                => $profile?->cv_pdf
-                                           ? asset('storage/' . $profile->cv_pdf) : null,
-            'portofolio_pdf'        => $profile?->portofolio_pdf
-                                           ? asset('storage/' . $profile->portofolio_pdf) : null,
-            'transkrip_pdf'         => $profile?->transkrip_pdf
-                                           ? asset('storage/' . $profile->transkrip_pdf) : null,
-            'ktp_pdf'               => $profile?->ktp_pdf
-                                           ? asset('storage/' . $profile->ktp_pdf) : null,
-            'surat_rekomendasi_pdf' => $profile?->surat_rekomendasi_pdf
-                                           ? asset('storage/' . $profile->surat_rekomendasi_pdf) : null,
-            'ktm_pdf'               => $profile?->ktm_pdf
-                                           ? asset('storage/' . $profile->ktm_pdf) : null,
+            'cv_pdf'                => $profile?->cv_pdf                ? $this->internUrl($profile->cv_pdf)                : null,
+            'portofolio_pdf'        => $profile?->portofolio_pdf        ? $this->internUrl($profile->portofolio_pdf)        : null,
+            'transkrip_pdf'         => $profile?->transkrip_pdf         ? $this->internUrl($profile->transkrip_pdf)         : null,
+            'ktp_pdf'               => $profile?->ktp_pdf               ? $this->internUrl($profile->ktp_pdf)               : null,
+            'surat_rekomendasi_pdf' => $profile?->surat_rekomendasi_pdf ? $this->internUrl($profile->surat_rekomendasi_pdf) : null,
+            'ktm_pdf'               => $profile?->ktm_pdf               ? $this->internUrl($profile->ktm_pdf)               : null,
         ];
     }
 
@@ -64,7 +66,7 @@ class AdminTalentController extends Controller
         $p = $user->internProfile;
 
         return [
-            'foto'                => $p?->foto ? asset('storage/' . $p->foto) : null,
+            'foto'                => $p?->foto ? $this->internUrl($p->foto) : null,
             'tentang_saya'        => $p?->tentang_saya,
             'jenis_kelamin'       => $p?->jenis_kelamin,
             'tempat_lahir'        => $p?->tempat_lahir,
@@ -148,7 +150,7 @@ class AdminTalentController extends Controller
                     'nama'  => $user->nama,
                     'email' => $user->email,
                     'foto'  => $user->internProfile?->foto
-                                   ? asset('storage/' . $user->internProfile->foto) : null,
+                                   ? $this->internUrl($user->internProfile->foto) : null,
                 ],
                 'universitas'           => $user->internProfile?->universitas ?? '-',
                 'jurusan'               => $user->internProfile?->jurusan ?? '-',
@@ -188,7 +190,7 @@ class AdminTalentController extends Controller
                 'full_name'             => $user->nama,
                 'email'                 => $user->email,
                 'email_address'         => $user->email,
-                'foto'                  => $p?->foto ? asset('storage/' . $p->foto) : null,
+                'foto'                  => $p?->foto ? $this->internUrl($p->foto) : null,
                 'tentang_saya'          => $p?->tentang_saya,
                 'jenis_kelamin'         => $p?->jenis_kelamin,
                 'tempat_lahir'          => $p?->tempat_lahir,

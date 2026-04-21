@@ -92,8 +92,12 @@ function normalizeCandidateStatus(value) {
 function mapCandidate(item, index) {
   const user    = item?.user || item?.intern || item?.candidate || {};
   const profile = user?.intern_profile || user?.internProfile || item?.intern_profile || {};
-  const rawId   = item?.id ?? item?.application_id ?? user?.user_id ?? (index + 1);
-  const displayId = `KDT-${String(rawId).padStart(3, "0")}`;
+  const rawId   = item?.id ?? item?.application_id ?? user?.user_id ?? null;
+  // Hindari link /null jika rawId tidak valid
+  const validId = (rawId != null && rawId !== 0 && String(rawId) !== "null") ? rawId : null;
+  const displayId = validId
+    ? `KDT-${String(validId).padStart(3, "0")}`
+    : `KDT-${String(index + 1).padStart(3, "0")}`;
 
   const rawImage =
     profile?.foto ||
@@ -103,7 +107,7 @@ function mapCandidate(item, index) {
 
   return {
     raw:       item,
-    backendId: rawId,
+    backendId: validId ?? index + 1,
     id:        displayId,
     name:      item?.name  || user?.nama  || item?.nama  || "Kandidat",
     email:     item?.email || user?.email || "Email belum tersedia",
@@ -128,7 +132,7 @@ function mapCandidate(item, index) {
     status: normalizeCandidateStatus(item?.status || item?.candidate_status),
     // ✅ validasi URL — kalau null/kosong langsung default, tidak coba load
     image: isValidImageUrl(rawImage) ? rawImage : "/default-avatar.png",
-    link:  `/admin/mitra/talent/${rawId}`,
+    link:  validId ? `/admin/mitra/talent/${validId}` : null,
   };
 }
 

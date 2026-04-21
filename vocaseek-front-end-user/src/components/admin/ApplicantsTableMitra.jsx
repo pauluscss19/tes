@@ -3,6 +3,36 @@ import { useNavigate } from "react-router-dom";
 import { ChevronRight, SlidersHorizontal, ChevronDown } from "lucide-react";
 import "../../styles/admin/ApplicantsTableMitra.css";
 
+// Avatar dengan foto atau inisial fallback
+function CandidateAvatar({ name, foto }) {
+  const [imgError, setImgError] = React.useState(false);
+
+  const initials = String(name || "?")
+    .split(" ")
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const showPhoto = foto && !imgError;
+
+  return (
+    <div className="applicants-table__avatar">
+      {showPhoto ? (
+        <img
+          src={foto}
+          alt={name}
+          className="applicants-table__avatar-img"
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        <span className="applicants-table__avatar-initials">{initials}</span>
+      )}
+    </div>
+  );
+}
+
 export default function ApplicantsTable({ applicants = [], isLoading = false }) {
   const navigate = useNavigate();
   const [filterOpen, setFilterOpen] = React.useState(false);
@@ -27,7 +57,11 @@ export default function ApplicantsTable({ applicants = [], isLoading = false }) 
   };
 
   const handleRowClick = (item) => {
-    navigate(`/admin/mitra/talent/${item.application_id}`);
+    // Backend getDashboardData mengirim application_id secara explicit
+    const appId = item.application_id ?? item.id;
+    // Jangan navigasi jika id null/undefined/0
+    if (appId == null || appId === 0 || String(appId) === "null" || String(appId) === "undefined") return;
+    navigate(`/admin/mitra/talent/${appId}`);
   };
 
   return (
@@ -126,26 +160,36 @@ export default function ApplicantsTable({ applicants = [], isLoading = false }) 
                 </td>
               </tr>
             ) : filteredData.length > 0 ? (
-              filteredData.map((item) => (
-                <tr
-                  key={item.application_id}
-                  onClick={() => handleRowClick(item)}
-                  className="is-clickable"
-                >
-                  <td className="muted">APP-{String(item.application_id).padStart(3, "0")}</td>
-                  <td className="semi-bold">{item.name}</td>
-                  <td>{item.position}</td>
-                  <td className="muted">{item.date}</td>
-                  <td>
-                    <span className={statusClass(item.status)}>{item.status}</span>
-                  </td>
-                  <td className="align-right">
-                    <button type="button" className="applicants-table__icon-btn">
-                      <ChevronRight size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))
+              filteredData.map((item, index) => {
+                const appId = item.application_id ?? item.id;
+                return (
+                  <tr
+                    key={appId ?? index}
+                    onClick={() => handleRowClick(item)}
+                    className="is-clickable"
+                  >
+                    <td className="muted">
+                      APP-{String(appId ?? index + 1).padStart(3, "0")}
+                    </td>
+                    <td>
+                      <div className="applicants-table__candidate-cell">
+                        <CandidateAvatar name={item.name} foto={item.foto} />
+                        <span className="semi-bold">{item.name}</span>
+                      </div>
+                    </td>
+                    <td>{item.position}</td>
+                    <td className="muted">{item.date}</td>
+                    <td>
+                      <span className={statusClass(item.status)}>{item.status}</span>
+                    </td>
+                    <td className="align-right">
+                      <button type="button" className="applicants-table__icon-btn">
+                        <ChevronRight size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={6} className="muted" style={{ textAlign: "center", padding: "32px 16px" }}>
@@ -164,38 +208,46 @@ export default function ApplicantsTable({ applicants = [], isLoading = false }) 
             <p className="value muted">Memuat data...</p>
           </div>
         ) : filteredData.length > 0 ? (
-          filteredData.map((item) => (
-            <div
-              key={item.application_id}
-              className="applicant-card is-clickable"
-              onClick={() => handleRowClick(item)}
-            >
-              <div className="applicant-card__top">
-                <div>
-                  <p className="applicant-card__id">APP-{String(item.application_id).padStart(3, "0")}</p>
-                  <h3 className="applicant-card__name">{item.name}</h3>
+          filteredData.map((item, index) => {
+            const appId = item.application_id ?? item.id;
+            return (
+              <div
+                key={appId ?? index}
+                className="applicant-card is-clickable"
+                onClick={() => handleRowClick(item)}
+              >
+                <div className="applicant-card__top">
+                  <div className="applicant-card__identity">
+                    <CandidateAvatar name={item.name} foto={item.foto} />
+                    <div>
+                      <p className="applicant-card__id">
+                        APP-{String(appId ?? index).padStart(3, "0")}
+                      </p>
+                      <h3 className="applicant-card__name">{item.name}</h3>
+                    </div>
+                  </div>
+                  <button type="button" className="applicants-table__icon-btn">
+                    <ChevronRight size={18} />
+                  </button>
                 </div>
-                <button type="button" className="applicants-table__icon-btn">
-                  <ChevronRight size={18} />
-                </button>
-              </div>
 
-              <div className="applicant-card__body">
-                <div className="applicant-card__row">
-                  <span className="label">Position</span>
-                  <span className="value">{item.position}</span>
-                </div>
-                <div className="applicant-card__row">
-                  <span className="label">Applied Date</span>
-                  <span className="value muted">{item.date}</span>
-                </div>
-                <div className="applicant-card__row">
-                  <span className="label">Status</span>
-                  <span className={statusClass(item.status)}>{item.status}</span>
+                <div className="applicant-card__body">
+                  <div className="applicant-card__row">
+                    <span className="label">Position</span>
+                    <span className="value">{item.position}</span>
+                  </div>
+                  <div className="applicant-card__row">
+                    <span className="label">Applied Date</span>
+                    <span className="value muted">{item.date}</span>
+                  </div>
+                  <div className="applicant-card__row">
+                    <span className="label">Status</span>
+                    <span className={statusClass(item.status)}>{item.status}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="applicant-card">
             <h3 className="applicant-card__name">Belum ada pelamar</h3>

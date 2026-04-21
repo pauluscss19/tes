@@ -65,6 +65,7 @@ export default function DataDiri() {
     }
   });
   const [selectedPhotoFile, setSelectedPhotoFile] = useState(null);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const navigate = useNavigate();
@@ -165,7 +166,51 @@ export default function DataDiri() {
     }));
   };
 
-  const changePhoto = (e) => {
+  const compressImage = (file, maxWidthHeight = 800, quality = 0.8) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          let { width, height } = img;
+
+          if (width > height) {
+            if (width > maxWidthHeight) {
+              height = Math.round((height * maxWidthHeight) / width);
+              width = maxWidthHeight;
+            }
+          } else {
+            if (height > maxWidthHeight) {
+              width = Math.round((width * maxWidthHeight) / height);
+              height = maxWidthHeight;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          canvas.toBlob(
+            (blob) => {
+              const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              resolve({ file: compressedFile, dataUrl: canvas.toDataURL("image/jpeg", quality) });
+            },
+            "image/jpeg",
+            quality,
+          );
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const changePhoto = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -175,12 +220,23 @@ export default function DataDiri() {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setSelectedPhotoFile(file);
-      handleChange("photo", reader.result);
-    };
-    reader.readAsDataURL(file);
+    setIsCompressing(true);
+    try {
+      const { file: compressed, dataUrl } = await compressImage(file);
+      setSelectedPhotoFile(compressed);
+      handleChange("photo", dataUrl);
+    } catch (err) {
+      console.error("Gagal kompres foto:", err);
+      // fallback tanpa kompresi
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedPhotoFile(file);
+        handleChange("photo", reader.result);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressing(false);
+    }
 
     e.target.value = "";
   };
@@ -285,8 +341,8 @@ export default function DataDiri() {
             <div className="dpPhotoInfo">
               <div className="dpPhotoHint">Unggah foto 1:1 (square)</div>
 
-              <button className="dpLinkBtn" type="button" onClick={openFile}>
-                Ganti Foto
+              <button className="dpLinkBtn" type="button" onClick={openFile} disabled={isCompressing}>
+                {isCompressing ? "Memproses..." : "Ganti Foto"}
               </button>
 
               <input

@@ -13,7 +13,6 @@ import {
   Eye,
   ChevronDown,
   X,
-  Check,
   SquarePen as ModalPen,
 } from "lucide-react";
 import {
@@ -27,8 +26,8 @@ import {
 } from "../../../utils/pagination";
 
 const STATUS_OPTIONS = [
-  { value: "pending", label: "Pending" },
-  { value: "review", label: "Under Review" },
+  { value: "pending",  label: "Pending" },
+  { value: "review",   label: "Under Review" },
   { value: "approved", label: "Approved" },
 ];
 const ITEMS_PER_PAGE = 8;
@@ -39,14 +38,8 @@ function getStatusLabel(status) {
 }
 
 function ChangeVerificationStatusModal({
-  open,
-  company,
-  selectedStatus,
-  setSelectedStatus,
-  isSaving,
-  error,
-  onClose,
-  onSave,
+  open, company, selectedStatus, setSelectedStatus,
+  isSaving, error, onClose, onSave,
 }) {
   if (!open || !company) return null;
 
@@ -54,13 +47,12 @@ function ChangeVerificationStatusModal({
 
   return (
     <div className="cv-modal-overlay" onClick={onClose}>
-      <div className="cv-modal" onClick={(event) => event.stopPropagation()}>
+      <div className="cv-modal" onClick={(e) => e.stopPropagation()}>
         <div className="cv-modal-header">
           <div className="cv-modal-title-wrap">
             <ModalPen size={19} className="cv-modal-title-icon" />
             <h3 className="cv-modal-title">Ubah Status Verifikasi Mitra</h3>
           </div>
-
           <button className="cv-modal-close" onClick={onClose} type="button">
             <X size={22} />
           </button>
@@ -83,7 +75,7 @@ function ChangeVerificationStatusModal({
               <select
                 className="cv-select"
                 value={selectedStatus}
-                onChange={(event) => setSelectedStatus(event.target.value)}
+                onChange={(e) => setSelectedStatus(e.target.value)}
               >
                 {STATUS_OPTIONS.map((item) => (
                   <option key={item.value} value={item.value}>
@@ -95,15 +87,13 @@ function ChangeVerificationStatusModal({
             </div>
           </div>
 
-          {error ? (
+          {error && (
             <p style={{ color: "#d93025", fontSize: "0.9rem", margin: 0 }}>{error}</p>
-          ) : null}
+          )}
         </div>
 
         <div className="cv-modal-footer">
-          <button type="button" className="cv-btn-cancel" onClick={onClose}>
-            Batal
-          </button>
+          <button type="button" className="cv-btn-cancel" onClick={onClose}>Batal</button>
           <button type="button" className="cv-btn-save" onClick={onSave} disabled={isSaving}>
             {isSaving ? "Menyimpan..." : "Simpan Perubahan"}
           </button>
@@ -115,43 +105,39 @@ function ChangeVerificationStatusModal({
 
 export default function CompanyVerification() {
   const navigate = useNavigate();
-  const [companies, setCompanies] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [pageError, setPageError] = React.useState("");
-  const [modalError, setModalError] = React.useState("");
-  const [modalOpen, setModalOpen] = React.useState(false);
-  const [activeCompany, setActiveCompany] = React.useState(null);
+  const [companies,      setCompanies]      = React.useState([]);
+  const [loading,        setLoading]        = React.useState(true);
+  const [pageError,      setPageError]      = React.useState("");
+  const [modalError,     setModalError]     = React.useState("");
+  const [modalOpen,      setModalOpen]      = React.useState(false);
+  const [activeCompany,  setActiveCompany]  = React.useState(null);
   const [selectedStatus, setSelectedStatus] = React.useState("pending");
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [filterOpen, setFilterOpen] = React.useState(false);
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const [statusFilter, setStatusFilter] = React.useState("all");
+  const [isSaving,       setIsSaving]       = React.useState(false);
+  const [filterOpen,     setFilterOpen]     = React.useState(false);
+  const [searchTerm,     setSearchTerm]     = React.useState("");
+  const [statusFilter,   setStatusFilter]   = React.useState("all");
   const [businessFilter, setBusinessFilter] = React.useState("all");
-  const [currentPage, setCurrentPage] = React.useState(1);
+  const [currentPage,    setCurrentPage]    = React.useState(1);
 
+  // ── Load data ────────────────────────────────────────────
   const loadCompanies = React.useCallback(async () => {
     setLoading(true);
     setPageError("");
-
     try {
       const result = await getVerificationCompanies();
       setCompanies(result);
     } catch (error) {
       setPageError(
-        getApiErrorMessage(
-          error,
-          "Gagal memuat data verifikasi perusahaan dari backend.",
-        ),
+        getApiErrorMessage(error, "Gagal memuat data verifikasi perusahaan dari backend.")
       );
     } finally {
       setLoading(false);
     }
   }, []);
 
-  React.useEffect(() => {
-    loadCompanies();
-  }, [loadCompanies]);
+  React.useEffect(() => { loadCompanies(); }, [loadCompanies]);
 
+  // ── Modal helpers ────────────────────────────────────────
   const openModal = (company) => {
     setActiveCompany(company);
     setSelectedStatus(company.status);
@@ -167,71 +153,60 @@ export default function CompanyVerification() {
 
   const saveStatus = async () => {
     if (!activeCompany) return;
-
     setIsSaving(true);
     setModalError("");
-
     try {
-      await updateVerificationStatus(activeCompany.id, {
-        status: selectedStatus,
-      });
-
+      await updateVerificationStatus(activeCompany.id, { status: selectedStatus });
       setCompanies((prev) =>
         prev.map((item) =>
-          item.id === activeCompany.id ? { ...item, status: selectedStatus } : item,
-        ),
+          item.id === activeCompany.id ? { ...item, status: selectedStatus } : item
+        )
       );
       closeModal();
     } catch (error) {
       setModalError(
-        getApiErrorMessage(
-          error,
-          "Gagal memperbarui status verifikasi perusahaan.",
-        ),
+        getApiErrorMessage(error, "Gagal memperbarui status verifikasi perusahaan.")
       );
     } finally {
       setIsSaving(false);
     }
   };
 
+  // ── Filter & search ──────────────────────────────────────
   const businessOptions = React.useMemo(() => {
     return [...new Set(companies.map((item) => item.businessType).filter(Boolean))];
   }, [companies]);
 
   const filteredCompanies = React.useMemo(() => {
     return companies.filter((company) => {
-      const normalizedKeyword = searchTerm.trim().toLowerCase();
+      const kw = searchTerm.trim().toLowerCase();
       const matchesKeyword =
-        !normalizedKeyword ||
-        company.name.toLowerCase().includes(normalizedKeyword) ||
-        company.code.toLowerCase().includes(normalizedKeyword) ||
-        company.email.toLowerCase().includes(normalizedKeyword);
+        !kw ||
+        String(company.name  ?? "").toLowerCase().includes(kw) ||
+        String(company.code  ?? "").toLowerCase().includes(kw) || // ✅ fix: String() agar aman
+        String(company.email ?? "").toLowerCase().includes(kw);
 
       const matchesStatus =
-        statusFilter === "all" ? true : company.status === statusFilter;
+        statusFilter === "all" || company.status === statusFilter;
+
       const matchesBusiness =
-        businessFilter === "all" ? true : company.businessType === businessFilter;
+        businessFilter === "all" || company.businessType === businessFilter;
 
       return matchesKeyword && matchesStatus && matchesBusiness;
     });
   }, [businessFilter, companies, searchTerm, statusFilter]);
 
-  React.useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, businessFilter]);
+  React.useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, businessFilter]);
 
   const { pageItems } = paginateItems(filteredCompanies, currentPage, ITEMS_PER_PAGE);
-  const pagination = getPaginationMeta(
-    filteredCompanies.length,
-    currentPage,
-    ITEMS_PER_PAGE,
-  );
+  const pagination    = getPaginationMeta(filteredCompanies.length, currentPage, ITEMS_PER_PAGE);
 
+  // ── Summary cards ────────────────────────────────────────
   const summary = React.useMemo(() => {
-    const pending = companies.filter((item) => item.status === "pending").length;
-    const approved = companies.filter((item) => item.status === "approved").length;
+    const pending  = companies.filter((c) => c.status === "pending").length;
+    const approved = companies.filter((c) => c.status === "approved").length;
     const rejected = companies.filter(
-      (item) => item.status === "rejected" || item.status === "invalid",
+      (c) => c.status === "rejected" || c.status === "invalid"
     ).length;
 
     return [
@@ -262,52 +237,47 @@ export default function CompanyVerification() {
     ];
   }, [companies]);
 
+  // ── Render ───────────────────────────────────────────────
   return (
     <div className="cv-layout">
       <Sidebar />
-
       <main className="cv-main">
         <Topbar />
-
         <section className="cv-content">
+
           <div className="cv-breadcrumb">
-            <span>Admin</span>
-            <span>›</span>
+            <span>Admin</span><span>›</span>
             <span className="active">Verifikasi Perusahaan</span>
           </div>
-
           <h1 className="cv-page-title">Verifikasi Perusahaan Mitra</h1>
           <p className="cv-page-subtitle">
-            Tinjau dan setujui pendaftaran perusahaan baru untuk bergabung dengan
-            ekosistem Vocaseek.
+            Tinjau dan setujui pendaftaran perusahaan baru untuk bergabung dengan ekosistem Vocaseek.
           </p>
 
+          {/* Summary Cards */}
           <div className="cv-summary-grid">
             {summary.map((card) => (
               <div className="cv-summary-card" key={card.title}>
                 <div className="cv-summary-top">
                   <div className={card.iconClass}>{card.icon}</div>
-                  <span className={`cv-summary-badge ${card.badgeClass}`}>
-                    {card.badge}
-                  </span>
+                  <span className={`cv-summary-badge ${card.badgeClass}`}>{card.badge}</span>
                 </div>
-
                 <div className="cv-summary-content">
                   <p>{card.title}</p>
                   <h3>{card.value}</h3>
                 </div>
-
                 <div className="cv-summary-circle" />
               </div>
             ))}
           </div>
 
+          {/* Tabel */}
           <div className="cv-table-card">
             <div className="cv-table-topbar">
               <div className="cv-table-title-wrap">
                 <h2>Daftar Pengajuan</h2>
                 <span className="cv-total-badge">
-                  {filteredCompanies.filter((item) => item.status === "pending").length} Pending
+                  {filteredCompanies.filter((c) => c.status === "pending").length} Pending
                 </span>
               </div>
 
@@ -318,7 +288,7 @@ export default function CompanyVerification() {
                     type="text"
                     placeholder="Cari perusahaan..."
                     value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
+                    onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
 
@@ -343,13 +313,11 @@ export default function CompanyVerification() {
                         <select
                           className="cv-filter-select"
                           value={statusFilter}
-                          onChange={(event) => setStatusFilter(event.target.value)}
+                          onChange={(e) => setStatusFilter(e.target.value)}
                         >
                           <option value="all">Semua Status</option>
                           {STATUS_OPTIONS.map((item) => (
-                            <option key={item.value} value={item.value}>
-                              {item.label}
-                            </option>
+                            <option key={item.value} value={item.value}>{item.label}</option>
                           ))}
                         </select>
                       </div>
@@ -359,13 +327,11 @@ export default function CompanyVerification() {
                         <select
                           className="cv-filter-select"
                           value={businessFilter}
-                          onChange={(event) => setBusinessFilter(event.target.value)}
+                          onChange={(e) => setBusinessFilter(e.target.value)}
                         >
                           <option value="all">Semua Tipe</option>
                           {businessOptions.map((item) => (
-                            <option key={item} value={item}>
-                              {item}
-                            </option>
+                            <option key={item} value={item}>{item}</option>
                           ))}
                         </select>
                       </div>
@@ -374,14 +340,10 @@ export default function CompanyVerification() {
                         <button
                           type="button"
                           className="cv-filter-reset"
-                          onClick={() => {
-                            setStatusFilter("all");
-                            setBusinessFilter("all");
-                          }}
+                          onClick={() => { setStatusFilter("all"); setBusinessFilter("all"); }}
                         >
                           Reset
                         </button>
-
                         <button
                           type="button"
                           className="cv-filter-apply"
@@ -396,9 +358,9 @@ export default function CompanyVerification() {
               </div>
             </div>
 
-            {pageError ? (
+            {pageError && (
               <div style={{ padding: "20px 22px", color: "#d93025" }}>{pageError}</div>
-            ) : null}
+            )}
 
             <div className="cv-table-wrap">
               <table className="cv-table">
@@ -412,12 +374,10 @@ export default function CompanyVerification() {
                     <th className="cv-col-action">AKSI</th>
                   </tr>
                 </thead>
-
                 <tbody>
                   {!loading && pageItems.length > 0 ? (
                     pageItems.map((company) => {
                       const Icon = company.Icon;
-
                       return (
                         <tr key={company.id}>
                           <td className="cv-id-cell">{company.code}</td>
@@ -427,7 +387,6 @@ export default function CompanyVerification() {
                               <div className={`cv-company-icon ${company.companyIconClass}`}>
                                 <Icon size={18} />
                               </div>
-
                               <div className="cv-company-text">
                                 <div className="cv-company-name">{company.name}</div>
                                 <div className="cv-company-city">{company.city}</div>
@@ -436,9 +395,7 @@ export default function CompanyVerification() {
                           </td>
 
                           <td>
-                            <span
-                              className={`cv-business-badge ${company.businessTypeClass}`}
-                            >
+                            <span className={`cv-business-badge ${company.businessTypeClass}`}>
                               {company.businessType}
                             </span>
                           </td>
@@ -459,15 +416,9 @@ export default function CompanyVerification() {
                                 onClick={() => openModal(company)}
                               >
                                 <SquarePen size={14} />
-                                <span>
-                                  Ubah
-                                  <br />
-                                  Status
-                                </span>
+                                <span>Ubah<br />Status</span>
                               </button>
-
                               <span className="cv-action-divider" />
-
                               <button
                                 type="button"
                                 className="cv-icon-btn"
@@ -484,13 +435,8 @@ export default function CompanyVerification() {
                     })
                   ) : (
                     <tr>
-                      <td
-                        colSpan={6}
-                        style={{ padding: "32px 16px", textAlign: "center", color: "#6b7280" }}
-                      >
-                        {loading
-                          ? "Memuat pengajuan perusahaan..."
-                          : "Belum ada pengajuan perusahaan."}
+                      <td colSpan={6} style={{ padding: "32px 16px", textAlign: "center", color: "#6b7280" }}>
+                        {loading ? "Memuat pengajuan perusahaan..." : "Belum ada pengajuan perusahaan."}
                       </td>
                     </tr>
                   )}
@@ -500,9 +446,8 @@ export default function CompanyVerification() {
 
             <div className="cv-table-footer">
               <p>
-                Menampilkan {pagination.start}-{pagination.end} dari {filteredCompanies.length} data
+                Menampilkan {pagination.start}–{pagination.end} dari {filteredCompanies.length} data
               </p>
-
               <div className="cv-pagination">
                 <button
                   className="cv-page-btn wide"
@@ -516,9 +461,7 @@ export default function CompanyVerification() {
                   className="cv-page-btn wide"
                   type="button"
                   disabled={pagination.currentPage >= pagination.totalPages}
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, pagination.totalPages))
-                  }
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, pagination.totalPages))}
                 >
                   Next
                 </button>

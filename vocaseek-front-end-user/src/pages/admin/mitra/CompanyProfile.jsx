@@ -97,7 +97,10 @@ export default function CompanyProfile() {
 
         setProfile(getCompanyProfileData(profileResponse));
         setActiveJobs(
-          jobs.filter((job) => String(job?.status || "").toUpperCase() === "ACTIVE")
+          jobs.filter((job) => {
+            const s = String(job?.status || "").toUpperCase();
+            return s === "OPEN" || s === "ACTIVE";
+          })
         );
       } catch (error) {
         if (!isMounted) return;
@@ -268,9 +271,9 @@ export default function CompanyProfile() {
                     activeJobs.slice(0, 3).map((job) => (
                       <ActiveJobCard
                         key={job.id}
-                        title={job.judul_posisi || "Lowongan"}
+                        title={job.judul_pekerjaan || job.judul_posisi || "Lowongan"}
                         location={job.lokasi || "Lokasi belum diisi"}
-                        meta={job.tipe_magang || "onsite"}
+                        meta={job.tipe_pekerjaan || job.tipe_magang || job.pengaturan_kerja || "Onsite"}
                       />
                     ))
                   ) : (

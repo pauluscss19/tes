@@ -474,15 +474,16 @@
 .detail-file-item {
   width: 100%;
   margin-bottom: 16px;
-  padding: 16px;
+  padding: 14px 16px;
   border-radius: 16px;
   border: 1px solid #e8ecf2;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   transition: 0.2s ease;
   text-align: left;
+  flex-wrap: wrap;
 }
 
 .detail-file-item:last-child {
@@ -542,11 +543,19 @@
   color: #9ca3af;
 }
 
+.detail-file-text {
+  min-width: 0;
+  flex: 1;
+}
+
 .detail-file-title {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #1c2434;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-file-title.empty {
@@ -555,26 +564,66 @@
 
 .detail-file-subtitle {
   margin-top: 2px;
-  font-size: 13px;
+  font-size: 12px;
   color: #94a3b8;
   line-height: 1.5;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Tombol aksi dokumen ─────────────────────────────────────── */
+.detail-file-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .detail-file-action {
-  border: none;
-  background: transparent;
-  color: #f0b617;
-  font-size: 14px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  font-family: "Poppins", sans-serif;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  flex-shrink: 0;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: 0.15s ease;
 }
 
-.detail-file-action.empty {
-  color: #94a3b8;
-  cursor: default;
+.detail-file-action--view {
+  border: 1px solid #d1d9e8;
+  background: #fff;
+  color: #253d8e;
 }
+
+.detail-file-action--view:hover {
+  background: #eef3ff;
+}
+
+.detail-file-action--download {
+  border: none;
+  background: #f3be11;
+  color: #1c2434;
+}
+
+.detail-file-action--download:hover {
+  background: #e6b310;
+}
+
+.detail-file-action--empty {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+  padding: 0 4px;
+}
+
 
 .detail-avatar-empty {
   background: #eef2f7;

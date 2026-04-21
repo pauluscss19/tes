@@ -316,7 +316,8 @@ export function mapTalentDetailPayload(rawItem = {}) {
 
   // ─── Pengalaman, Sertifikasi, Skill ────────────────────────────────────────
   const experiences = normalizeList(
-    rawItem?.pengalaman ||
+    rawItem?.pengalaman_kerja ||
+      rawItem?.pengalaman ||
       rawItem?.experiences ||
       rawItem?.work_experiences ||
       profile?.pengalaman ||
@@ -324,7 +325,8 @@ export function mapTalentDetailPayload(rawItem = {}) {
   );
 
   const certifications = normalizeList(
-    rawItem?.sertifikasi ||
+    rawItem?.lisensi_keahlian ||
+      rawItem?.sertifikasi ||
       rawItem?.certifications ||
       rawItem?.licenses ||
       profile?.sertifikasi ||
@@ -332,7 +334,8 @@ export function mapTalentDetailPayload(rawItem = {}) {
   );
 
   const skills = normalizeList(
-    rawItem?.skills ||
+    rawItem?.lisensi_keahlian ||
+      rawItem?.skills ||
       rawItem?.keahlian ||
       profile?.skills ||
       profile?.keahlian ||

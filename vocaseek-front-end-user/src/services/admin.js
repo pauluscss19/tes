@@ -44,7 +44,9 @@ export function getAdminPartnerDetail(id) {
 }
 
 export function createAdminPartner(payload) {
-  return api.post(`${ADMIN_BASE}/partners`, payload);
+  return api.post(`${ADMIN_BASE}/partners`, payload, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
 }
 
 export function deleteAdminPartner(id) {

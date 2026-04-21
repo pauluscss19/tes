@@ -31,13 +31,27 @@ function Chip({ children, blue = false }) {
   );
 }
 
-function FileItem({ document, color = "orange" }) {
+function FileItem({ document, color = "orange", onDownload }) {
   const colorClass = { orange: "orange", blue: "blue", green: "green", gray: "gray" };
   const { title, subtitle, available, url } = document;
 
   const handleOpen = () => {
     if (!available || !url) return;
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleDownload = (e) => {
+    e.stopPropagation();
+    if (!available || !url) return;
+    if (onDownload) { onDownload(); return; }
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = subtitle || title;
+    a.target   = "_blank";
+    a.rel      = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const renderIcon = () => {
@@ -59,18 +73,34 @@ function FileItem({ document, color = "orange" }) {
         <div className={`detail-file-icon ${colorClass[color]}`}>
           {renderIcon()}
         </div>
-        <div>
+        <div className="detail-file-text">
           <div className={`detail-file-title ${available ? "" : "empty"}`}>{title}</div>
           <div className="detail-file-subtitle">{subtitle}</div>
         </div>
       </div>
-      <button
-        type="button"
-        className={`detail-file-action ${available ? "" : "empty"}`}
-        onClick={(e) => { e.stopPropagation(); handleOpen(); }}
-      >
-        {available ? "Lihat File" : "Kosong"}
-      </button>
+      <div className="detail-file-actions">
+        {available ? (
+          <>
+            <button
+              type="button"
+              className="detail-file-action detail-file-action--view"
+              onClick={(e) => { e.stopPropagation(); handleOpen(); }}
+            >
+              Lihat
+            </button>
+            <button
+              type="button"
+              className="detail-file-action detail-file-action--download"
+              onClick={handleDownload}
+            >
+              <Download size={14} />
+              Unduh
+            </button>
+          </>
+        ) : (
+          <span className="detail-file-action detail-file-action--empty">Kosong</span>
+        )}
+      </div>
     </div>
   );
 }

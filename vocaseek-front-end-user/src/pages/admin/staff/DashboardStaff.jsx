@@ -39,8 +39,20 @@ function getInitials(name) {
 function mapActivity(item) {
   const name = item?.name || item?.nama || item?.identity || "Aktivitas";
 
+  // Cari foto dari berbagai kemungkinan field
+  const foto =
+    item?.foto ||
+    item?.photo ||
+    item?.avatar ||
+    item?.profile_photo ||
+    item?.nama_talenta?.foto ||
+    item?.profile?.foto ||
+    item?.intern_profile?.foto ||
+    null;
+
   return {
     initials: item?.initials || getInitials(name),
+    foto,
     name,
     role:
       item?.role ||

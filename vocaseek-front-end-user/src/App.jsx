@@ -67,6 +67,7 @@ import EditProfile from "./pages/admin/super/EditProfile";
 import DashboardMitra from "./pages/admin/mitra/DashboardMitra";
 import JobPostings from "./pages/admin/mitra/JobPostings";
 import CreateJob from "./pages/admin/mitra/CreateJob";
+import EditJob from "./pages/admin/mitra/EditJob";
 import CreateJobPreview from "./pages/admin/mitra/CreateJobPreview";
 import JobApplicants from "./pages/admin/mitra/JobApplicants";
 import TalentManagement from "./pages/admin/mitra/TalentManagementMitra";
@@ -239,6 +240,7 @@ export default function App() {
         <Route path="/admin/mitra/dashboard" element={<ProtectedRoute allowedRoles={["company"]}><DashboardMitra /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan" element={<ProtectedRoute allowedRoles={["company"]}><JobPostings /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/tambah" element={<ProtectedRoute allowedRoles={["company"]}><CreateJob /></ProtectedRoute>} />
+        <Route path="/admin/mitra/lowongan/:jobId/edit" element={<ProtectedRoute allowedRoles={["company"]}><EditJob /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/pratinjau" element={<ProtectedRoute allowedRoles={["company"]}><CreateJobPreview /></ProtectedRoute>} />
         <Route path="/admin/mitra/lowongan/:jobId/pelamar" element={<ProtectedRoute allowedRoles={["company"]}><JobApplicants /></ProtectedRoute>} />
         <Route path="/admin/mitra/company-profile" element={<ProtectedRoute allowedRoles={["company"]}><CompanyProfile /></ProtectedRoute>} />

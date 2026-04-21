@@ -8,6 +8,7 @@ use App\Models\JobApplication;
 use App\Models\CompanyProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class CompanyController extends Controller
 {
@@ -66,7 +67,10 @@ class CompanyController extends Controller
                 })->count(),
         ];
 
-        $recentApplicants = JobApplication::with(['user', 'lowongan'])
+        $internBase = rtrim(env('INTERN_STORAGE_URL', 'http://localhost:8002'), '/');
+        $internUrl  = fn(?string $path) => $path ? $internBase . '/storage/' . $path : null;
+
+        $recentApplicants = JobApplication::with(['user.internProfile', 'lowongan'])
             ->whereHas('lowongan', function ($q) use ($company) {
                 $q->where('company_profile_id', $company->id);
             })
@@ -74,18 +78,113 @@ class CompanyController extends Controller
             ->take(5)
             ->get()
             ->map(fn($app) => [
-                'id'           => $app->id,
-                'candidate_id' => 'KDT-' . str_pad($app->id, 3, '0', STR_PAD_LEFT),
-                'name'         => $app->user->nama ?? 'N/A',
-                'position'     => $app->lowongan->judul_pekerjaan ?? 'N/A',
-                'date'         => $app->created_at->format('M d, Y'),
-                'status'       => $app->status,
+                'application_id' => $app->application_id,
+                'id'             => $app->application_id,
+                'candidate_id'   => 'KDT-' . str_pad($app->application_id, 3, '0', STR_PAD_LEFT),
+                'name'           => $app->user->nama ?? 'N/A',
+                'foto'           => $internUrl($app->user->internProfile?->foto),
+                'position'       => $app->lowongan->judul_pekerjaan
+                                    ?? $app->lowongan->judul_posisi
+                                    ?? 'N/A',
+                'date'           => $app->created_at->format('M d, Y'),
+                'status'         => $app->status,
             ]);
 
         return response()->json([
             'status'            => 'success',
             'stats'             => $stats,
             'recent_applicants' => $recentApplicants,
+        ]);
+    }
+
+    /**
+     * GET PROFIL PERUSAHAAN (butuh auth)
+     */
+    public function getCompanyProfile(Request $request)
+    {
+        $user    = $request->user();
+        $company = $user->companyProfile;
+
+        if (!$company) {
+            return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
+        }
+
+        $baseUrl = rtrim(config('app.url'), '/');
+
+        return response()->json([
+            'status' => 'success',
+            'data'   => [
+                'id'                  => $company->id,
+                'nama_perusahaan'     => $company->nama_perusahaan,
+                'industri'            => $company->industri,
+                'ukuran_perusahaan'   => $company->ukuran_perusahaan,
+                'website_url'         => $company->website_url,
+                'deskripsi'           => $company->deskripsi,
+                'notelp'              => $company->notelp ?? $user->notelp,
+                'alamat_kantor_pusat' => $company->alamat_kantor_pusat,
+                'nib'                 => $company->nib,
+                'status_mitra'        => $company->status_mitra,
+                'linkedin_url'        => $company->linkedin_url,
+                'instagram_url'       => $company->instagram_url,
+                'twitter_url'         => $company->twitter_url,
+                'logo_url'            => $company->logo_perusahaan
+                                            ? $baseUrl . '/storage/' . $company->logo_perusahaan
+                                            : null,
+                'banner_url'          => $company->banner_perusahaan
+                                            ? $baseUrl . '/storage/' . $company->banner_perusahaan
+                                            : null,
+                // PIC info
+                'nama_pic'            => $user->nama,
+                'email_pic'           => $user->email,
+                'phone_pic'           => $user->notelp,
+            ],
+        ]);
+    }
+
+    /**
+     * UPDATE PROFIL PERUSAHAAN (butuh auth)
+     */
+    public function updateProfile(Request $request)
+    {
+        $user    = $request->user();
+        $company = $user->companyProfile;
+
+        if (!$company) {
+            return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
+        }
+
+        $request->validate([
+            'logo'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'banner' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        if ($request->hasFile('logo')) {
+            if ($company->logo_perusahaan) Storage::disk('public')->delete($company->logo_perusahaan);
+            $company->logo_perusahaan = $request->file('logo')->store('company/logos', 'public');
+        }
+
+        if ($request->hasFile('banner')) {
+            if ($company->banner_perusahaan) Storage::disk('public')->delete($company->banner_perusahaan);
+            $company->banner_perusahaan = $request->file('banner')->store('company/banners', 'public');
+        }
+
+        $fillable = [
+            'nama_perusahaan', 'industri', 'ukuran_perusahaan', 'website_url',
+            'deskripsi', 'notelp', 'alamat_kantor_pusat', 'nib',
+            'linkedin_url', 'instagram_url', 'twitter_url',
+        ];
+
+        foreach ($fillable as $field) {
+            if ($request->has($field)) {
+                $company->$field = $request->input($field);
+            }
+        }
+
+        $company->save();
+
+        return response()->json([
+            'status'  => 'success',
+            'message' => 'Profil perusahaan berhasil diperbarui!',
         ]);
     }
 

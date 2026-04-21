@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../../styles/Soal1.css";
 import {
@@ -7,6 +7,7 @@ import {
   PRETEST_STORAGE_KEYS,
 } from "../../utils/pretestAssessment";
 import { getScopedItem, setScopedItem } from "../../utils/userScopedStorage";
+import { submitInternTest, startInternTest } from "../../services/intern";
 
 function getPretestStartedAt() {
   const savedStartedAt = Number(getScopedItem(PRETEST_STORAGE_KEYS.startedAt));
@@ -45,20 +46,58 @@ export default function Soal1() {
     return saved ? JSON.parse(saved) : {};
   });
 
-  const questions = useMemo(
-    () => PRETEST_QUESTION_BANK,
-    []
+  // Pakai ref agar timer bisa baca jawaban terkini tanpa re-render
+  const answersRef = useRef(answers);
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+
+  const questions = useMemo(() => PRETEST_QUESTION_BANK, []);
+
+  // ── Kirim jawaban ke backend ─────────────────────────────────────────────
+  const submitToBackend = useCallback(
+    async (currentAnswers) => {
+      try {
+        // Format sesuai yang diharapkan InternController::submitPreTest:
+        // answers: [ { question: "...", selected_option: "iya/tidak" }, ... ]
+        const formatted = Object.entries(questions).map(([no, q]) => ({
+          question: q.title,
+          selected_option: currentAnswers[no] || "tidak dijawab",
+        }));
+
+        await submitInternTest({ answers: formatted });
+      } catch (error) {
+        // Jangan interrupt user flow jika API gagal
+        console.error("Gagal mengirim jawaban ke backend:", error);
+      }
+    },
+    [questions],
   );
 
-  const finishTest = useCallback(() => {
-    setScopedItem(PRETEST_STORAGE_KEYS.completed, "true");
-    setScopedItem(PRETEST_STORAGE_KEYS.answers, JSON.stringify(answers));
-    setScopedItem(PRETEST_STORAGE_KEYS.questions, JSON.stringify(questions));
-    navigate("/selesai-test");
-  }, [answers, navigate, questions]);
+  // ── Selesaikan tes ───────────────────────────────────────────────────────
+  const isFinishingRef = useRef(false); // cegah double-submit
+  const finishTest = useCallback(
+    async (currentAnswers) => {
+      if (isFinishingRef.current) return;
+      isFinishingRef.current = true;
+
+      // 1. Simpan ke localStorage (backup offline)
+      setScopedItem(PRETEST_STORAGE_KEYS.completed, "true");
+      setScopedItem(PRETEST_STORAGE_KEYS.answers, JSON.stringify(currentAnswers));
+      setScopedItem(PRETEST_STORAGE_KEYS.questions, JSON.stringify(questions));
+
+      // 2. ✅ Kirim ke backend — INI YANG SEBELUMNYA HILANG
+      await submitToBackend(currentAnswers);
+
+      // 3. Arahkan ke halaman selesai
+      navigate("/selesai-test");
+    },
+    [questions, navigate, submitToBackend],
+  );
 
   const timeText = formatRemainingTime(remainingMs);
 
+  // Simpan jawaban ke localStorage setiap berubah
   useEffect(() => {
     setScopedItem(PRETEST_STORAGE_KEYS.answers, JSON.stringify(answers));
   }, [answers]);
@@ -67,46 +106,47 @@ export default function Soal1() {
     setScopedItem(PRETEST_STORAGE_KEYS.questions, JSON.stringify(questions));
   }, [questions]);
 
+  // ── Beritahu backend bahwa tes dimulai ───────────────────────────────────
+  useEffect(() => {
+    startInternTest().catch((err) =>
+      console.warn("startInternTest gagal (mungkin sudah dimulai sebelumnya):", err),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Timer countdown ──────────────────────────────────────────────────────
   useEffect(() => {
     const tick = () => {
       const nextRemainingMs = getRemainingTime(startedAt);
       setRemainingMs(nextRemainingMs);
 
       if (nextRemainingMs <= 0) {
-        finishTest();
+        // Baca jawaban terkini dari ref agar tidak stale
+        finishTest(answersRef.current);
       }
     };
 
     tick();
     const intervalId = window.setInterval(tick, 1000);
-
-    return () => {
-      window.clearInterval(intervalId);
-    };
-  }, [finishTest, startedAt]);
+    return () => window.clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startedAt]);
 
   const currentQuestion = questions[activeNo];
 
-  const handlePickNumber = (n) => {
-    setActiveNo(n);
-  };
+  const handlePickNumber = (n) => setActiveNo(n);
 
   const handleAnswer = (value) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [activeNo]: value,
-    }));
+    setAnswers((prev) => ({ ...prev, [activeNo]: value }));
   };
 
-  const handlePrev = () => {
-    setActiveNo((prev) => Math.max(1, prev - 1));
-  };
+  const handlePrev = () => setActiveNo((prev) => Math.max(1, prev - 1));
 
   const handleNext = () => {
     if (activeNo < total) {
       setActiveNo((prev) => prev + 1);
     } else {
-      finishTest();
+      finishTest(answers);
     }
   };
 

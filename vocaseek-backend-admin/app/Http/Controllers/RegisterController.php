@@ -45,8 +45,8 @@ class RegisterController extends Controller
 
             // 3. Jika role company
             if ($request->role === 'company') {
-                $loaPath  = $request->file('loa_pdf')->store('documents/loa', 'public');
-                $aktaPath = $request->file('akta_pdf')->store('documents/akta', 'public');
+                $loaPath  = $request->file('loa_pdf')->store('company/documents', 'public');
+                $aktaPath = $request->file('akta_pdf')->store('company/documents', 'public');
 
                 CompanyProfile::create([
                     'user_id'         => $user->user_id, // Pakai user_id sesuai migrasi kamu

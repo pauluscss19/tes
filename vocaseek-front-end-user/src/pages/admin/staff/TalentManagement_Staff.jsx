@@ -71,10 +71,21 @@ function mapTalentRow(item, index) {
   const registeredAt = item?.created_at || item?.registered_at || item?.tanggal_daftar || "-";
   const status = getTalentStatus(item);
 
+  // Cari foto dari berbagai kemungkinan field
+  const foto =
+    item?.foto ||
+    item?.photo ||
+    item?.profile_photo ||
+    item?.nama_talenta?.foto ||
+    item?.profile?.foto ||
+    item?.profile?.photo ||
+    null;
+
   return {
     id: String(item?.user_id || item?.id || `talent-${index}`),
     name,
     email,
+    foto,
     university,
     universityShort: getInitials(university),
     major,
@@ -95,6 +106,38 @@ function StatCard({ title, value, change, changeType, icon, iconClass }) {
         </div>
         <div className={iconClass}>{icon}</div>
       </div>
+    </div>
+  );
+}
+
+// Avatar: tampilkan foto asli atau fallback inisial
+function TalentAvatar({ name, foto }) {
+  const [imgError, setImgError] = React.useState(false);
+  const initials = getInitials(name);
+  const showPhoto = foto && !imgError;
+
+  return (
+    <div
+      className="tm-table-avatar"
+      style={{
+        display: "grid",
+        placeItems: "center",
+        background: showPhoto ? "transparent" : "#dbe7ff",
+        color: "#3267e3",
+        fontWeight: 700,
+        overflow: "hidden",
+      }}
+    >
+      {showPhoto ? (
+        <img
+          src={foto}
+          alt={name}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+          onError={() => setImgError(true)}
+        />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -227,18 +270,7 @@ export default function TalentManagementStaff() {
                       <tr key={item.id}>
                         <td>
                           <div className="tm-talent-cell">
-                            <div
-                              className="tm-table-avatar"
-                              style={{
-                                display: "grid",
-                                placeItems: "center",
-                                background: "#dbe7ff",
-                                color: "#3267e3",
-                                fontWeight: 700,
-                              }}
-                            >
-                              {getInitials(item.name)}
-                            </div>
+                          <TalentAvatar name={item.name} foto={item.foto} />
                             <div>
                               <div className="tm-table-name">{item.name}</div>
                               <div className="tm-table-email">{item.email}</div>

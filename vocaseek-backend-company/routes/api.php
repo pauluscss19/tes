@@ -59,6 +59,10 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::prefix('company')->group(function () {
 
+        // Profil Perusahaan
+        Route::get('/profile',          [CompanyController::class, 'getCompanyProfile']);
+        Route::post('/profile/update',  [CompanyController::class, 'updateProfile']);
+
         Route::get('/dashboard',        [CompanyController::class, 'getDashboardData']);
 
         // Jobs

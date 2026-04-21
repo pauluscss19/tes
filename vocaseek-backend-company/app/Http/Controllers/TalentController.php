@@ -42,10 +42,14 @@ class TalentController extends Controller
                 ->where('updated_at', '>=', now()->startOfMonth())->count(),
         ];
 
+        $internBase = rtrim(env('INTERN_STORAGE_URL', 'http://localhost:8002'), '/');
+        $internUrl  = fn(?string $path) => $path ? $internBase . '/storage/' . $path : null;
+
         $tableData = $applications->map(fn($app) => [
             'id'           => $app->application_id,
             'name'         => $app->user->nama              ?? 'N/A',
             'email'        => $app->user->email             ?? '-',
+            'foto'         => $internUrl($app->user->internProfile?->foto),
             'position'     => $app->lowongan->judul_posisi
                               ?? $app->lowongan->judul_pekerjaan
                               ?? 'N/A',
@@ -67,11 +71,17 @@ class TalentController extends Controller
     {
         $application = JobApplication::with([
             'user.internProfile',
+            'user.experiences',
+            'user.certifications',
             'lowongan',
         ])->findOrFail($id);
 
         $user    = $application->user;
         $profile = $user->internProfile;
+
+        // URL ke storage intern backend (port 8002)
+        $internBase = rtrim(env('INTERN_STORAGE_URL', 'http://localhost:8002'), '/');
+        $internUrl  = fn(?string $path) => $path ? $internBase . '/storage/' . $path : null;
 
         return response()->json([
             'status' => 'success',
@@ -92,9 +102,7 @@ class TalentController extends Controller
                                     $profile->kabupaten     ?? null,
                                     $profile->provinsi      ?? null,
                                 ]))) ?: '-',
-                    'foto'    => $profile->foto
-                                    ? asset('storage/' . $profile->foto)
-                                    : null,
+                    'foto'    => $internUrl($profile?->foto),
                     'socials' => [
                         'linkedin'  => $profile->linkedin  ?? null,
                         'instagram' => $profile->instagram ?? null,
@@ -120,23 +128,26 @@ class TalentController extends Controller
                                         : null,
                 ],
                 'documents' => [
-                    'cv'                => $profile->cv_pdf
-                                            ? asset('storage/' . $profile->cv_pdf) : null,
-                    'portfolio'         => $profile->portofolio_pdf
-                                            ? asset('storage/' . $profile->portofolio_pdf) : null,
-                    'ktp'               => $profile->ktp_pdf
-                                            ? asset('storage/' . $profile->ktp_pdf) : null,
-                    'transkrip'         => $profile->transkrip_pdf
-                                            ? asset('storage/' . $profile->transkrip_pdf) : null,
-                    'surat_rekomendasi' => $profile->surat_rekomendasi_pdf
-                                            ? asset('storage/' . $profile->surat_rekomendasi_pdf) : null,
-                    'ktm'               => $profile->ktm_pdf
-                                            ? asset('storage/' . $profile->ktm_pdf) : null,
+                    'cv'                => $internUrl($profile?->cv_pdf),
+                    'portfolio'         => $internUrl($profile?->portofolio_pdf),
+                    'ktp'               => $internUrl($profile?->ktp_pdf),
+                    'transkrip'         => $internUrl($profile?->transkrip_pdf),
+                    'surat_rekomendasi' => $internUrl($profile?->surat_rekomendasi_pdf),
+                    'ktm'               => $internUrl($profile?->ktm_pdf),
                 ],
-                'experience' => [],
-                'licenses'   => [],
-            ],  // ← tutup 'data'
-        ]);     // ← tutup response()->json()
+                'experience' => $user->experiences->map(fn($e) => [
+                    'position' => $e->title   ?? '-',
+                    'company'  => $e->company ?? '-',
+                    'period'   => $e->period  ?? '-',
+                    'desc'     => $e->description ?? null,
+                ])->values()->all(),
+                'licenses' => $user->certifications->map(fn($c) => [
+                    'name'   => $c->name   ?? '-',
+                    'issuer' => $c->issuer ?? '-',
+                    'year'   => $c->year   ?? '-',
+                ])->values()->all(),
+            ],
+        ]);
     }
 
     public function storeManualCandidate(Request $request)

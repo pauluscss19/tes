@@ -221,7 +221,7 @@ export default function JobPostings() {
   }, [loadJobs]);
 
   const handleEditJob = (row) => {
-    navigate("/admin/mitra/lowongan/pratinjau", { state: { job: row } });
+    navigate(`/admin/mitra/lowongan/${row.backendId}/edit`, { state: { job: row } });
   };
 
   const handleDeleteJob = async (row) => {

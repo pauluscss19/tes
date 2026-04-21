@@ -337,7 +337,7 @@ export default function TalentDetail() {
                     {certifications.length > 0 ? (
                       certifications.map((certificate, index) => (
                         <Chip key={`cert-${index}`}>
-                          {certificate?.nama || certificate?.title || certificate?.sertifikasi || "Sertifikasi"}
+                          {certificate?.name || certificate?.nama || certificate?.title || certificate?.sertifikasi || "Sertifikasi"}
                         </Chip>
                       ))
                     ) : (

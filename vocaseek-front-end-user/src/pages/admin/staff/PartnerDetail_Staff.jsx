@@ -148,7 +148,7 @@ export default function PartnerDetail() {
                     <div className="pd-contact-avatar" />
                     <div>
                       <div className="pd-contact-name">{partner?.pic?.nama ?? "-"}</div>
-                      <div className="pd-contact-role">{partner?.pic?.jabatan ?? "Perusahaan Mitra"}</div>
+                      <div className="pd-contact-role">{partner?.pic?.jabatan ?? "PIC / Penanggung Jawab"}</div>
                     </div>
                   </div>
                   <div className="pd-contact-info">
@@ -205,13 +205,24 @@ export default function PartnerDetail() {
                           </div>
                         </div>
                         <div className="pd-doc-actions">
-                          <a href={doc.url} target="_blank" rel="noreferrer" className="pd-doc-btn secondary">Lihat</a>
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="pd-doc-btn secondary"
+                            onClick={(e) => {
+                              // Prevent 403 blank tab, warn user
+                              if (!doc.url) { e.preventDefault(); alert("URL dokumen tidak tersedia."); }
+                            }}
+                          >
+                            Lihat
+                          </a>
                           <a href={doc.url} download className="pd-doc-btn primary">Unduh</a>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="pd-empty-state">Belum ada dokumen kerjasama.</div>
+                    <div className="pd-empty-state">Belum ada dokumen kerjasama yang diupload.</div>
                   )}
                 </div>
               </div>
