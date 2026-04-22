@@ -18,7 +18,7 @@ import {
   User,
 } from "lucide-react";
 import "../../../styles/TalentDetail.css";
-import { getAdminTalents } from "../../../services/admin";
+import { getAdminTalentDetail } from "../../../services/admin";
 import { getApiErrorMessage } from "../../../services/auth";
 import { mapTalentDetailPayload } from "../../../utils/talentProfile";
 
@@ -81,14 +81,7 @@ function FileItem({ document, color = "orange" }) {
   );
 }
 
-function extractTalentCollection(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.data)) return payload.data.data;
-  if (Array.isArray(payload?.talents)) return payload.talents;
-  if (Array.isArray(payload?.items)) return payload.items;
-  return [];
-}
+
 
 export default function TalentDetail() {
   const navigate = useNavigate();
@@ -98,6 +91,7 @@ export default function TalentDetail() {
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    if (!id) return;
     let isMounted = true;
 
     const loadTalentDetail = async () => {
@@ -105,30 +99,24 @@ export default function TalentDetail() {
       setErrorMessage("");
 
       try {
-        const response = await getAdminTalents();
-        const payload = response?.data?.data || response?.data || {};
-        const collection = extractTalentCollection(payload);
-        const matchedItem = collection.find((item) =>
-          String(item?.user_id || item?.id || item?.user?.user_id || "") === String(id),
-        );
+        const response = await getAdminTalentDetail(id);
+        const raw = response?.data?.data ?? response?.data ?? {};
 
         if (!isMounted) return;
 
-        if (!matchedItem) {
+        if (!raw || Object.keys(raw).length === 0) {
           setTalent(null);
           setErrorMessage("Data talent tidak ditemukan.");
           return;
         }
 
-        setTalent(mapTalentDetailPayload(matchedItem));
+        setTalent(mapTalentDetailPayload(raw));
       } catch (error) {
         if (!isMounted) return;
         setTalent(null);
         setErrorMessage(getApiErrorMessage(error, "Gagal memuat detail talent."));
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (isMounted) setIsLoading(false);
       }
     };
 
@@ -379,7 +367,9 @@ export default function TalentDetail() {
 
                 <div className="detail-assessment-footer">
                   <button
-                    onClick={() => navigate(`/admin/talent/${id}/assessment-review`)}
+                    onClick={() => navigate(`/admin/talent/${id}/assessment-review`, {
+                      state: { email: talent?.email, name: talent?.name, foto: talent?.foto, assessmentAnswers: talent?.assessment?.answers || [] }
+                    })}
                     className="detail-review-button"
                     type="button"
                   >

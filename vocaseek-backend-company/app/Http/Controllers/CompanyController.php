@@ -243,6 +243,13 @@ class CompanyController extends Controller
             return response()->json(['message' => 'Profil perusahaan tidak ditemukan'], 404);
         }
 
+        if ($company->status_mitra !== 'active') {
+            return response()->json([
+                'status'  => 'error',
+                'message' => 'Perusahaan Anda belum diverifikasi oleh admin. Anda belum bisa membuat lowongan.'
+            ], 403);
+        }
+
         $validated = $request->validate([
             'judul_pekerjaan'    => 'required|string|max:255',
             'kategori_pekerjaan' => 'required|string|max:255',

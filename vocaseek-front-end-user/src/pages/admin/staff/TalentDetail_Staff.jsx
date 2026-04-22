@@ -430,7 +430,7 @@ export default function TalentDetailStaff() {
                     onClick={() =>
                       navigate(
                         `/admin/staff/talent/${id}/assessment-review`,
-                        { state: { email: talent?.email, name: talent?.name } },
+                        { state: { email: talent?.email, name: talent?.name, foto: talent?.foto, assessmentAnswers: talent?.assessment?.answers || [] } },
                       )
                     }
                   >

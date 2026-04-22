@@ -8,16 +8,23 @@ use Illuminate\Support\Facades\Auth;
 
 class LicenseController extends Controller
 {
+    // Helper: ambil user_id yang benar berdasarkan primary key tabel users
+    private function uid(): int
+    {
+        $user = Auth::user();
+        return $user->user_id ?? $user->id ?? Auth::id();
+    }
+
     public function index()
     {
-        $data = InternCertification::where('user_id', Auth::id())->get();
+        $data = InternCertification::where('user_id', $this->uid())->get();
         return response()->json(['data' => $data]);
     }
 
     public function store(Request $request)
     {
         $cert = InternCertification::create([
-            'user_id' => Auth::id(),
+            'user_id' => $this->uid(),
             'name'    => $request->name ?? '',
         ]);
         return response()->json(['data' => $cert], 201);
@@ -26,7 +33,7 @@ class LicenseController extends Controller
     public function update(Request $request, $id)
     {
         $cert = InternCertification::where('id', $id)
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $this->uid())
                     ->firstOrFail();
         $cert->update($request->only(['name']));
         return response()->json(['data' => $cert]);
@@ -35,7 +42,7 @@ class LicenseController extends Controller
     public function destroy($id)
     {
         $cert = InternCertification::where('id', $id)
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $this->uid())
                     ->firstOrFail();
         $cert->delete();
         return response()->json(['message' => 'Deleted']);

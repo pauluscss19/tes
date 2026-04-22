@@ -8,16 +8,23 @@ use Illuminate\Support\Facades\Auth;
 
 class ExperienceController extends Controller
 {
+    // Helper: ambil user_id yang benar berdasarkan primary key tabel users
+    private function uid(): int
+    {
+        $user = Auth::user();
+        return $user->user_id ?? $user->id ?? Auth::id();
+    }
+
     public function index()
     {
-        $data = InternExperience::where('user_id', Auth::id())->get();
+        $data = InternExperience::where('user_id', $this->uid())->get();
         return response()->json(['data' => $data]);
     }
 
     public function store(Request $request)
     {
         $exp = InternExperience::create([
-            'user_id' => Auth::id(),
+            'user_id' => $this->uid(),
             'title'   => $request->title   ?? '',
             'company' => $request->company ?? '',
             'period'  => $request->period  ?? '',
@@ -28,7 +35,7 @@ class ExperienceController extends Controller
     public function update(Request $request, $id)
     {
         $exp = InternExperience::where('id', $id)
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $this->uid())
                     ->firstOrFail();
         $exp->update($request->only(['title', 'company', 'period']));
         return response()->json(['data' => $exp]);
@@ -37,7 +44,7 @@ class ExperienceController extends Controller
     public function destroy($id)
     {
         $exp = InternExperience::where('id', $id)
-                    ->where('user_id', Auth::id())
+                    ->where('user_id', $this->uid())
                     ->firstOrFail();
         $exp->delete();
         return response()->json(['message' => 'Deleted']);

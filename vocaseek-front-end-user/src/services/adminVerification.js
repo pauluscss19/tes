@@ -45,7 +45,7 @@ function getStatus(item) {
 
   if (normalized === "active") return "approved";
   if (normalized === "reviewed") return "review";
-  if (normalized === "rejected") return "rejected";
+  if (normalized === "rejected" || normalized === "nonaktif") return "rejected";
   if (normalized === "pending") return "pending";
 
   return normalized;
@@ -128,7 +128,7 @@ function mapCompanyRecord(item, index, mode = "verification") {
     mode === "partner" ? getPartnerStatus(companyData) : getStatus(companyData);
 
   return {
-    id: companyData?.user_id || companyData?.id,
+    id: companyData?.id || companyData?.user_id,
     raw: item,
     code: getCompanyCode(companyData),
     name: getCompanyName(companyData),
@@ -158,9 +158,14 @@ function mapCompanyRecord(item, index, mode = "verification") {
       companyData?.catatan_verifikasi ||
       "",
     documents: {
-      loa: companyData?.loa_pdf || companyData?.company_profile?.loa_pdf || null,
+      loa:
+        (Array.isArray(item?.dokumen) && item.dokumen.find(d => String(d.nama).includes("LoA"))?.file) ||
+        (companyData?.loa_pdf ? (companyData.loa_pdf.startsWith("http") ? companyData.loa_pdf : `http://localhost:8001/storage/${companyData.loa_pdf}`) : null) ||
+        (companyData?.company_profile?.loa_pdf ? `http://localhost:8001/storage/${companyData.company_profile.loa_pdf}` : null),
       akta:
-        companyData?.akta_pdf || companyData?.company_profile?.akta_pdf || null,
+        (Array.isArray(item?.dokumen) && item.dokumen.find(d => String(d.nama).includes("Akta"))?.file) ||
+        (companyData?.akta_pdf ? (companyData.akta_pdf.startsWith("http") ? companyData.akta_pdf : `http://localhost:8001/storage/${companyData.akta_pdf}`) : null) ||
+        (companyData?.company_profile?.akta_pdf ? `http://localhost:8001/storage/${companyData.company_profile.akta_pdf}` : null),
       extra: Array.isArray(item?.dokumen) ? item.dokumen : [],
     },
     companyIconClass: iconClassPool[index % iconClassPool.length],

@@ -320,7 +320,9 @@ export default function DetailTalent() {
                 </div>
                 <div className="detail-talent__assessment-action">
                   <button
-                    onClick={() => navigate(`/admin/mitra/talent/${id}/assessment-review`)}
+                    onClick={() => navigate(`/admin/mitra/talent/${id}/assessment-review`, {
+                      state: { name: personal?.name, foto: personal?.foto, assessmentAnswers: assessment?.answers || [] }
+                    })}
                     className="detail-talent__assessment-btn"
                   >
                     Review Jawaban

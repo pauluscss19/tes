@@ -1,9 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\Auth\GoogleController;
-use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\ForgotPasswordController;
 use App\Http\Controllers\InternController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\TalentController;

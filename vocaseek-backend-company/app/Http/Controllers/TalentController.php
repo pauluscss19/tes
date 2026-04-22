@@ -126,6 +126,9 @@ class TalentController extends Controller
                                         ? \Carbon\Carbon::parse($profile->test_finished_at)
                                             ->format('d M Y H:i')
                                         : null,
+                    'answers'     => \App\Models\TestAnswer::where('user_id', $user->user_id)
+                                        ->orderBy('id')
+                                        ->get(['question_text', 'user_answer']),
                 ],
                 'documents' => [
                     'cv'                => $internUrl($profile?->cv_pdf),

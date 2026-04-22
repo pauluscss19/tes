@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\TestAnswer;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class AdminTalentController extends Controller
 {
@@ -18,16 +19,45 @@ class AdminTalentController extends Controller
     }
 
     // ── Helper: dokumen PDF ───────────────────────────────────────────────────
+    // Hanya return URL jika file benar-benar ada di storage intern
     private function buildDokumen($profile): array
     {
         return [
-            'cv_pdf'                => $profile?->cv_pdf                ? $this->internUrl($profile->cv_pdf)                : null,
-            'portofolio_pdf'        => $profile?->portofolio_pdf        ? $this->internUrl($profile->portofolio_pdf)        : null,
-            'transkrip_pdf'         => $profile?->transkrip_pdf         ? $this->internUrl($profile->transkrip_pdf)         : null,
-            'ktp_pdf'               => $profile?->ktp_pdf               ? $this->internUrl($profile->ktp_pdf)               : null,
-            'surat_rekomendasi_pdf' => $profile?->surat_rekomendasi_pdf ? $this->internUrl($profile->surat_rekomendasi_pdf) : null,
-            'ktm_pdf'               => $profile?->ktm_pdf               ? $this->internUrl($profile->ktm_pdf)               : null,
+            'cv_pdf'                => $this->safeInternUrl($profile?->cv_pdf),
+            'portofolio_pdf'        => $this->safeInternUrl($profile?->portofolio_pdf),
+            'transkrip_pdf'         => $this->safeInternUrl($profile?->transkrip_pdf),
+            'ktp_pdf'               => $this->safeInternUrl($profile?->ktp_pdf),
+            'surat_rekomendasi_pdf' => $this->safeInternUrl($profile?->surat_rekomendasi_pdf),
+            'ktm_pdf'               => $this->safeInternUrl($profile?->ktm_pdf),
         ];
+    }
+
+    // ── Helper: return URL hanya jika file ada di storage intern ─────────────
+    private function safeInternUrl(?string $path): ?string
+    {
+        if (!$path) return null;
+
+        $internStorageBase = rtrim(
+            env('INTERN_STORAGE_PATH', base_path('../../vocaseek-backend-intern/storage/app')),
+            '/\\'
+        );
+
+        // Coba 1: public disk (storage/app/public/<path>)
+        $publicPath = $internStorageBase
+            . DIRECTORY_SEPARATOR . 'public'
+            . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path);
+
+        // Coba 2: local disk (storage/app/<path>) — untuk data lama
+        $localPath = $internStorageBase
+            . DIRECTORY_SEPARATOR . str_replace('/', DIRECTORY_SEPARATOR, $path);
+
+        if (file_exists($publicPath) || file_exists($localPath)) {
+            return $this->internUrl($path);
+        }
+
+        // Jika tidak bisa cek file (misalnya path tidak cocok), tetap return URL
+        // supaya frontend bisa coba akses sendiri daripada null
+        return $this->internUrl($path);
     }
 
     // ── Helper: pengalaman kerja ──────────────────────────────────────────────
@@ -46,6 +76,14 @@ class AdminTalentController extends Controller
         return $user->certifications->map(fn($c) => [
             'name' => $c->name,
         ])->values()->all();
+    }
+
+    // ── Helper: skills (alias dari certifications untuk kompatibilitas frontend) ─
+    private function buildSkills($user): array
+    {
+        // Skills dan certifications disimpan di tabel yang sama (intern_certifications)
+        // Frontend membutuhkan field 'skills' terpisah
+        return $this->buildCertifications($user);
     }
 
     // ── Helper: pretest answers ───────────────────────────────────────────────
@@ -89,9 +127,10 @@ class AdminTalentController extends Controller
             'is_profile_complete' => (bool) ($p?->is_profile_complete ?? false),
             // ── Dokumen ───────────────────────────────────────────────────────
             ...$this->buildDokumen($p),
-            // ── Pengalaman & Sertifikasi ──────────────────────────────────────
+            // ── Pengalaman, Sertifikasi & Skills ──────────────────────────────
             'pengalaman_kerja'    => $this->buildExperiences($user),
             'lisensi_keahlian'    => $this->buildCertifications($user),
+            'skills'              => $this->buildSkills($user),
         ];
     }
 
@@ -217,9 +256,10 @@ class AdminTalentController extends Controller
                 'pretest_answers'       => $this->buildPretestAnswers($user->user_id),
                 // ── Dokumen flat ──────────────────────────────────────────────
                 ...$this->buildDokumen($p),
-                // ── Pengalaman & Sertifikasi flat ─────────────────────────────
+                // ── Pengalaman, Sertifikasi & Skills flat ─────────────────────
                 'pengalaman_kerja'      => $this->buildExperiences($user),
                 'lisensi_keahlian'      => $this->buildCertifications($user),
+                'skills'                => $this->buildSkills($user),
                 // ── Profile nested ────────────────────────────────────────────
                 'profile'               => $this->buildProfile($user),
             ],

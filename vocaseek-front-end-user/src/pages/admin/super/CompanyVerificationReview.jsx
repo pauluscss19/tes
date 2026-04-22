@@ -89,7 +89,7 @@ function buildDocumentList(company) {
   const documents = [
     {
       slug:      "loa",
-      title:     "Letter of Acceptance (LoA)",
+      title:     "Letter of Agreement (LoA)",
       value:     company?.documents?.loa,
       icon:      <FileText size={22} />,
       iconClass: "cvr-doc-icon red",
@@ -100,13 +100,6 @@ function buildDocumentList(company) {
       value:     company?.documents?.akta,
       icon:      <Landmark size={22} />,
       iconClass: "cvr-doc-icon blue",
-    },
-    {
-      slug:      "nib",
-      title:     "Nomor Induk Berusaha (NIB)",
-      value:     company?.nib,
-      icon:      <BadgePercent size={22} />,
-      iconClass: "cvr-doc-icon yellow",
     },
   ];
 

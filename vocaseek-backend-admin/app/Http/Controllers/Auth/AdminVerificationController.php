@@ -56,21 +56,17 @@ class AdminVerificationController extends Controller
         if (!$normalizedStatus) {
             return response()->json([
                 'message' => 'The selected status is invalid.',
-                'allowed_status' => ['pending', 'reviewed', 'approve', 'reject', 'active', 'rejected'],
+                'allowed_status' => ['pending', 'approve', 'reject', 'active', 'nonaktif'],
             ], 422);
         }
 
-        if (in_array($normalizedStatus, ['active', 'rejected'], true) && Auth::user()->role !== 'super_admin') {
+        if (in_array($normalizedStatus, ['active', 'nonaktif'], true) && Auth::user()->role !== 'super_admin') {
             return response()->json([
                 'message' => __('messages.verification.super_admin_only'),
             ], 403);
         }
 
         $company->update(['status_mitra' => $normalizedStatus]);
-
-        if ($company->user && in_array($normalizedStatus, ['active', 'rejected'], true)) {
-            $company->user->update(['status' => $normalizedStatus]);
-        }
 
         return response()->json([
             'status' => 'success',
@@ -89,14 +85,18 @@ class AdminVerificationController extends Controller
     {
         $company = CompanyProfile::with('user')->findOrFail($id);
 
+        $loginStorageUrl = rtrim(env('LOGIN_STORAGE_URL', 'http://localhost:8001'), '/');
+        $getFileUrl = function($path) use ($loginStorageUrl) {
+            return $path ? $loginStorageUrl . '/storage/' . $path : null;
+        };
+
         return response()->json([
             'status' => 'success',
             'data' => [
                 'perusahaan' => $company,
                 'dokumen' => [
-                    ['id' => 1, 'nama' => 'NIB', 'file' => $company->nib ? asset('storage/'.$company->nib) : null],
-                    ['id' => 2, 'nama' => 'Letter of Agreement (LoA)', 'file' => $company->loa_pdf ? asset('storage/'.$company->loa_pdf) : null],
-                    ['id' => 3, 'nama' => 'Akta Perusahaan', 'file' => $company->akta_pdf ? asset('storage/'.$company->akta_pdf) : null],
+                    ['id' => 1, 'nama' => 'Letter of Agreement (LoA)', 'file' => $getFileUrl($company->loa_pdf)],
+                    ['id' => 2, 'nama' => 'Akta Perusahaan', 'file' => $getFileUrl($company->akta_pdf)],
                 ]
             ]
         ]);
@@ -117,7 +117,7 @@ class AdminVerificationController extends Controller
             $request->input('action', $request->input('status'))
         );
 
-        if (!in_array($normalizedStatus, ['active', 'rejected'], true)) {
+        if (!in_array($normalizedStatus, ['active', 'nonaktif'], true)) {
             return response()->json([
                 'message' => 'The selected action is invalid.',
                 'allowed_action' => ['approve', 'reject'],
@@ -125,23 +125,12 @@ class AdminVerificationController extends Controller
         }
 
         if ($normalizedStatus === 'active') {
-            DB::transaction(function () use ($company) {
-                // Update tabel profile
-                $company->update(['status_mitra' => 'active']);
-                
-                // Update tabel users agar statusnya 'active'
-                $company->user->update(['status' => 'active']);
-            });
-
+            $company->update(['status_mitra' => 'active']);
             return response()->json(['status' => 'success', 'message' => __('messages.verification.company_approved')]);
         }
 
         // Jika Reject
-        DB::transaction(function () use ($company) {
-            $company->update(['status_mitra' => 'rejected']);
-            $company->user->update(['status' => 'rejected']);
-        });
-
+        $company->update(['status_mitra' => 'nonaktif']);
         return response()->json(['status' => 'success', 'message' => __('messages.verification.company_rejected')]);
     }
 
@@ -153,9 +142,9 @@ class AdminVerificationController extends Controller
 
         return match (strtolower(trim($value))) {
             'pending' => 'pending',
-            'reviewed', 'review' => 'reviewed',
+            'reviewed', 'review' => 'pending', // Fallback to pending since reviewed is not in ENUM
             'approve', 'approved', 'active' => 'active',
-            'reject', 'rejected' => 'rejected',
+            'reject', 'rejected', 'nonaktif' => 'nonaktif',
             default => null,
         };
     }

@@ -52,6 +52,16 @@ function humanizeDocType(docType = "") {
 function normalizeDocumentItem(item, fallbackKey) {
   if (!item) return null;
 
+  const fallbackBaseUrl = "http://localhost:8001/storage/";
+  const sanitizeUrl = (path) => {
+    if (!path) return "";
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    // Hapus awalan slash atau 'storage/' yang duplikat
+    let cleanPath = path.replace(/^\/+/, "");
+    if (cleanPath.startsWith("storage/")) cleanPath = cleanPath.substring(8);
+    return fallbackBaseUrl + cleanPath;
+  };
+
   if (typeof item === "string" || typeof item === "number") {
     const str = String(item);
     const looksLikeFile =
@@ -60,27 +70,30 @@ function normalizeDocumentItem(item, fallbackKey) {
       str.startsWith("data:") ||
       /\.(pdf|png|jpg|jpeg|webp)$/i.test(str);
 
+    const safeUrl = looksLikeFile ? sanitizeUrl(str) : "";
+
     return {
       key: fallbackKey,
       title: humanizeDocType(fallbackKey),
-      filename: looksLikeFile ? getFileNameFromUrl(str) || fallbackKey : fallbackKey,
-      type: looksLikeFile ? getFileExtension(str).toUpperCase() || "FILE" : "TEXT",
+      filename: looksLikeFile ? getFileNameFromUrl(safeUrl) || fallbackKey : fallbackKey,
+      type: looksLikeFile ? getFileExtension(safeUrl).toUpperCase() || "FILE" : "TEXT",
       size: "-",
       uploaded: "-",
       uploader: "-",
-      url: looksLikeFile ? str : "",
+      url: safeUrl,
       value: looksLikeFile ? "" : str,
       raw: item,
     };
   }
 
-  const url = item.url || item.file || item.path || "";
+  const rawUrl = item.url || item.file || item.path || "";
+  const safeUrl = sanitizeUrl(rawUrl);
   const filename =
     item.filename || item.fileName || item.name || item.original_name ||
-    (url ? getFileNameFromUrl(url) : "") || fallbackKey;
+    (safeUrl ? getFileNameFromUrl(safeUrl) : "") || fallbackKey;
   const type =
     item.type || item.fileType ||
-    (url ? getFileExtension(url).toUpperCase() : item.value ? "TEXT" : "FILE") ||
+    (safeUrl ? getFileExtension(safeUrl).toUpperCase() : item.value ? "TEXT" : "FILE") ||
     "FILE";
 
   return {
@@ -91,7 +104,7 @@ function normalizeDocumentItem(item, fallbackKey) {
     size: item.size || item.fileSize || "-",
     uploaded: item.uploaded || item.uploadedAt || item.createdAt || "-",
     uploader: item.uploader || item.uploadedBy || item.pic || "-",
-    url,
+    url: safeUrl,
     value: item.value || item.number || item.text || "",
     raw: item,
   };

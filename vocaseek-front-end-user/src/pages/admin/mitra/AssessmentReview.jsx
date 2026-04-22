@@ -8,11 +8,12 @@ import {
   ChevronDown,
   Check,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { readProfileFromStorage } from "../../../components/user/ProfileStorage";
 import {
   getPretestReviewList,
   getPretestSummary,
+  PRETEST_QUESTION_BANK,
 } from "../../../utils/pretestAssessment";
 
 function QuestionCard({
@@ -75,10 +76,58 @@ function QuestionCard({
 
 export default function AssessmentReview() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [showAllQuestions, setShowAllQuestions] = useState(false);
 
-  const profile = useMemo(() => readProfileFromStorage(), []);
-  const reviewList = useMemo(() => getPretestReviewList(), []);
+  const candidateName = location.state?.name || "Kandidat Vocaseek";
+  const candidateFoto = location.state?.foto || null;
+  const assessmentAnswers = location.state?.assessmentAnswers || [];
+
+  const reviewList = useMemo(() => {
+    const storedAnswers = {};
+    if (assessmentAnswers && Array.isArray(assessmentAnswers)) {
+      assessmentAnswers.forEach((ans) => {
+        const foundKey = Object.keys(PRETEST_QUESTION_BANK).find(
+          (key) => PRETEST_QUESTION_BANK[key].title === ans.question_text
+        );
+        if (foundKey) {
+          storedAnswers[foundKey] = ans.user_answer;
+        }
+      });
+    }
+
+    const normalizeAnswer = (raw) => {
+      if (raw === "iya") return "Iya";
+      if (raw === "tidak") return "Tidak";
+      return "Belum dijawab";
+    };
+
+    const getOtherOption = (raw) => {
+      if (raw === "iya") return "Tidak";
+      if (raw === "tidak") return "Iya";
+      return "-";
+    };
+
+    return Object.keys(PRETEST_QUESTION_BANK)
+      .map((key) => {
+        const num       = Number(key);
+        const question  = PRETEST_QUESTION_BANK[key];
+        const rawAnswer = storedAnswers[key] || "";
+        return {
+          number:     num,
+          no:         num,
+          trait:      question.trait,
+          question:   question.title,
+          pertanyaan: question.title,
+          rawAnswer,
+          selected:   normalizeAnswer(rawAnswer),
+          pilihan:    normalizeAnswer(rawAnswer),
+          other:      getOtherOption(rawAnswer),
+        };
+      })
+      .sort((a, b) => a.no - b.no);
+  }, [assessmentAnswers]);
+
   const summary = useMemo(() => getPretestSummary(reviewList), [reviewList]);
 
   const visibleQuestions = showAllQuestions
@@ -93,7 +142,7 @@ export default function AssessmentReview() {
           .join(", ")
       : "belum terbaca";
 
-  const candidateName = profile.fullName || "Kandidat Vocaseek";
+
   const candidateRole = "Candidate Assessment Result";
   const remainingQuestions = Math.max(reviewList.length - visibleQuestions.length, 0);
 
@@ -112,7 +161,7 @@ export default function AssessmentReview() {
               TALENT MANAGEMENT
             </span>
             <span className="assessment-review__breadcrumb-muted">›</span>
-            <span className="assessment-review__breadcrumb-muted">
+            <span className="assessment-review__breadcrumb-muted" onClick={() => navigate(-1)} style={{ cursor: 'pointer' }}>
               DETAIL PROFIL
             </span>
             <span className="assessment-review__breadcrumb-muted">›</span>
@@ -123,7 +172,7 @@ export default function AssessmentReview() {
 
           <div className="assessment-review__header">
             <button
-              onClick={() => navigate("/admin/mitra/talent/kdt-001")}
+              onClick={() => navigate(-1)}
               className="assessment-review__back-btn"
               type="button"
             >
@@ -140,9 +189,9 @@ export default function AssessmentReview() {
               <div className="assessment-review__profile-wrap">
                 <div className="assessment-review__avatar-wrap">
                   <div className="assessment-review__avatar">
-                    {profile.photo ? (
+                    {candidateFoto ? (
                       <img
-                        src={profile.photo}
+                        src={candidateFoto}
                         alt={candidateName}
                         className="assessment-review__avatar-image"
                       />

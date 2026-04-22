@@ -23,6 +23,7 @@ import {
   mapCompanyJobRow,
   updateCompanyJob,
 } from "../../../services/jobs";
+import { getCompanyProfile, getCompanyProfileData } from "../../../services/companyProfile";
 import {
   getPageNumbers,
   getPaginationMeta,
@@ -198,13 +199,24 @@ export default function JobPostings() {
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState("");
 
+  const [isVerified, setIsVerified] = React.useState(true);
+
   const loadJobs = React.useCallback(async () => {
     setIsLoading(true);
     setErrorMessage("");
 
     try {
-      const response = await getCompanyJobs();
-      const jobs = response?.data?.jobs || response?.data?.data || [];
+      const [profileRes, jobsRes] = await Promise.all([
+        getCompanyProfile().catch(() => null),
+        getCompanyJobs()
+      ]);
+
+      if (profileRes) {
+        const profileData = getCompanyProfileData(profileRes);
+        setIsVerified(profileData?.status_mitra === "active");
+      }
+
+      const jobs = jobsRes?.data?.jobs || jobsRes?.data?.data || [];
       setJobRows(jobs.map(mapCompanyJobRow));
     } catch (error) {
       setErrorMessage(
@@ -318,8 +330,15 @@ export default function JobPostings() {
 
             <button
               type="button"
-              onClick={() => navigate("/admin/mitra/lowongan/tambah")}
-              className="job-postings__create-btn"
+              onClick={() => {
+                if (isVerified) {
+                  navigate("/admin/mitra/lowongan/tambah");
+                }
+              }}
+              className={`job-postings__create-btn ${!isVerified ? "job-postings__create-btn--disabled" : ""}`}
+              disabled={!isVerified}
+              title={!isVerified ? "Perusahaan Anda harus diverifikasi admin terlebih dahulu." : ""}
+              style={!isVerified ? { opacity: 0.5, cursor: "not-allowed" } : {}}
             >
               <Plus size={20} />
               Create New Job

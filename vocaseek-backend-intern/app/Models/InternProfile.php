@@ -34,8 +34,13 @@ class InternProfile extends Model
 
     'cv_pdf',
     'portofolio_pdf',
+    'transkrip_pdf',
+    'ktp_pdf',
+    'surat_rekomendasi_pdf',
+    'ktm_pdf',
 
     'pretest_score',
+    'skor_pretest',
     'test_started_at',
     'test_finished_at',
     'is_profile_complete'

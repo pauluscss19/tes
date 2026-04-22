@@ -320,6 +320,7 @@ export function mapTalentDetailPayload(rawItem = {}) {
       rawItem?.pengalaman ||
       rawItem?.experiences ||
       rawItem?.work_experiences ||
+      profile?.pengalaman_kerja ||
       profile?.pengalaman ||
       profile?.experiences,
   );
@@ -329,14 +330,15 @@ export function mapTalentDetailPayload(rawItem = {}) {
       rawItem?.sertifikasi ||
       rawItem?.certifications ||
       rawItem?.licenses ||
+      profile?.lisensi_keahlian ||
       profile?.sertifikasi ||
       profile?.certifications,
   );
 
   const skills = normalizeList(
-    rawItem?.lisensi_keahlian ||
-      rawItem?.skills ||
+    rawItem?.skills ||
       rawItem?.keahlian ||
+      rawItem?.skill_list ||
       profile?.skills ||
       profile?.keahlian ||
       user?.skills,
@@ -434,26 +436,34 @@ export function mapTalentDetailPayload(rawItem = {}) {
   );
 
   const assessmentScore = pickFirstValue(
+    rawItem?.skor_pretest,
+    rawItem?.pretest_score,
     rawItem?.score,
     rawItem?.assessment_score,
     rawItem?.test_score,
     rawItem?.hasil_test,
     rawItem?.nilai,
+    profile?.skor_pretest,
+    profile?.pretest_score,
     profile?.score,
     profile?.assessment_score,
     profile?.test_score,
+    user?.skor_pretest,
+    user?.pretest_score,
     user?.score,
     user?.assessment_score,
   );
 
   // ✅ Tambah: tangkap array jawaban jika backend mengirimnya
   const assessmentAnswers = normalizeList(
-    rawItem?.jawaban ||
+    rawItem?.pretest_answers ||
+      rawItem?.jawaban ||
       rawItem?.answers ||
       rawItem?.assessment_answers ||
       rawItem?.test_answers ||
       rawItem?.assessment?.answers ||
       rawItem?.test_result?.answers ||
+      profile?.pretest_answers ||
       profile?.jawaban ||
       profile?.answers,
   );
